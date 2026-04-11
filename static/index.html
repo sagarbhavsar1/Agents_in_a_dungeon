@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Agents</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>DUNGEON AGENTS</h1>
+        <span class="subtitle">Run Archive</span>
+    </header>
+
+    <main>
+        <table id="runs-table">
+            <thead>
+                <tr>
+                    <th>Run ID</th>
+                    <th>Outcome</th>
+                    <th>Turns</th>
+                    <th>Divergences</th>
+                    <th>Key Found</th>
+                    <th>Door Opened</th>
+                    <th>Messages</th>
+                    <th>Tokens</th>
+                </tr>
+            </thead>
+            <tbody id="runs-body">
+                <tr><td colspan="8" class="empty">Loading runs...</td></tr>
+            </tbody>
+        </table>
+    </main>
+
+    <script src="/js/api.js"></script>
+    <script>
+        async function loadRuns() {
+            const tbody = document.getElementById('runs-body');
+            try {
+                const runs = await api.listRuns();
+                if (runs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="empty">No runs yet. Run a simulation first.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = '';
+                for (const run of runs) {
+                    const s = run.summary_stats || {};
+                    const row = document.createElement('tr');
+                    row.className = 'run-row';
+                    row.onclick = () => window.location.href = `/run.html?id=${run.run_id}`;
+
+                    const outcomeClass = {
+                        'success': 'outcome-success',
+                        'failure_turn_limit': 'outcome-failure',
+                        'failure_stuck': 'outcome-failure',
+                        'failure_error': 'outcome-failure',
+                    }[run.outcome] || '';
+
+                    row.innerHTML = `
+                        <td class="mono">${run.run_id}</td>
+                        <td class="${outcomeClass}">${run.outcome.replace('failure_', '')}</td>
+                        <td>${run.total_turns}</td>
+                        <td class="${s.belief_divergence_count > 10 ? 'text-warn' : ''}">${s.belief_divergence_count || 0}</td>
+                        <td>${s.key_found_turn != null ? 'T' + s.key_found_turn : '—'}</td>
+                        <td>${s.door_unlocked_turn != null ? 'T' + s.door_unlocked_turn : '—'}</td>
+                        <td>${s.messages_sent || 0}</td>
+                        <td>${(s.total_tokens_used || 0).toLocaleString()}</td>
+                    `;
+                    tbody.appendChild(row);
+                }
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="8" class="empty">Error loading runs: ${err.message}</td></tr>`;
+            }
+        }
+        loadRuns();
+    </script>
+</body>
+</html>

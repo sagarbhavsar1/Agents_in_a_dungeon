@@ -1,0 +1,1831 @@
+{
+  "manifest": {
+    "run_id": "sample01",
+    "started_at": "2024-01-01T00:00:00Z",
+    "ended_at": "2024-01-01T00:05:00Z",
+    "outcome": "failure_turn_limit",
+    "total_turns": 4,
+    "seed": 42,
+    "grid_size": [
+      8,
+      8
+    ],
+    "world_config": {
+      "grid_size": [
+        8,
+        8
+      ],
+      "seed": 42,
+      "wall_positions": [
+        [
+          2,
+          7
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          0,
+          7
+        ],
+        [
+          2,
+          6
+        ],
+        [
+          5,
+          5
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          2,
+          3
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          5,
+          6
+        ]
+      ],
+      "key_position": [
+        7,
+        7
+      ],
+      "door_position": [
+        1,
+        7
+      ],
+      "exit_position": [
+        0,
+        6
+      ],
+      "item_positions": {
+        "key": [
+          7,
+          7
+        ],
+        "torch": [
+          4,
+          3
+        ],
+        "old_map": [
+          6,
+          0
+        ]
+      },
+      "agent_start_positions": {
+        "agent_a": [
+          3,
+          5
+        ],
+        "agent_b": [
+          2,
+          2
+        ]
+      }
+    },
+    "agent_configs": {
+      "agent_a": {
+        "agent_id": "agent_a",
+        "model": "claude-sonnet-4-20250514",
+        "system_prompt_hash": ""
+      },
+      "agent_b": {
+        "agent_id": "agent_b",
+        "model": "claude-sonnet-4-20250514",
+        "system_prompt_hash": ""
+      }
+    },
+    "summary_stats": {
+      "total_llm_calls": 8,
+      "total_tokens_used": 12400,
+      "total_tool_calls": 8,
+      "tool_call_counts": {
+        "look": 2,
+        "move": 4,
+        "send_message": 1,
+        "wait": 0
+      },
+      "messages_sent": 1,
+      "messages_received": 0,
+      "key_found_turn": null,
+      "door_unlocked_turn": null,
+      "agents_reached_exit": [],
+      "belief_divergence_count": 3,
+      "peak_belief_staleness": 3,
+      "coordination_failures": 0
+    }
+  },
+  "events": [
+    {
+      "run_id": "sample01",
+      "turn_number": 1,
+      "agent_id": "agent_a",
+      "timestamp": "2026-04-11T01:06:46.340111+00:00",
+      "observable_state": {
+        "position": [
+          3,
+          5
+        ],
+        "adjacent_cells": {
+          "north": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "south": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "east": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "west": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          }
+        },
+        "current_cell": {
+          "type": "floor",
+          "items": [],
+          "agents": [],
+          "is_locked": null
+        },
+        "inventory": []
+      },
+      "pending_messages": [],
+      "tool_name": "look",
+      "tool_input": {},
+      "tool_output": {
+        "position": [
+          3,
+          5
+        ],
+        "current_cell": {
+          "type": "floor",
+          "items": [],
+          "agents": [],
+          "is_locked": null
+        }
+      },
+      "tool_success": true,
+      "tool_failure_reason": null,
+      "llm_reasoning": "I need to explore. Let me look around first.",
+      "llm_latency_ms": 450,
+      "prompt_tokens": 800,
+      "completion_tokens": 150,
+      "belief_state": {
+        "my_position": [
+          3,
+          5
+        ],
+        "other_agent_position": null,
+        "key_location": null,
+        "door_status": null,
+        "exit_location": null,
+        "explored_cells": [],
+        "known_walls": [],
+        "known_items": {},
+        "current_goal": "Find the key",
+        "plan": "Explore systematically",
+        "information_staleness": {}
+      },
+      "actual_world_state": {
+        "grid": [
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "exit",
+            "wall"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "door"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "wall",
+            "wall"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "wall",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ]
+        ],
+        "agent_positions": {
+          "agent_a": [
+            3,
+            5
+          ],
+          "agent_b": [
+            2,
+            2
+          ]
+        },
+        "agent_inventories": {
+          "agent_a": [],
+          "agent_b": []
+        },
+        "key_position": [
+          7,
+          7
+        ],
+        "key_holder": null,
+        "door_locked": true,
+        "door_position": [
+          1,
+          7
+        ],
+        "exit_position": [
+          0,
+          6
+        ],
+        "items": {
+          "key": [
+            7,
+            7
+          ],
+          "torch": [
+            4,
+            3
+          ],
+          "old_map": [
+            6,
+            0
+          ]
+        }
+      },
+      "divergences": [],
+      "message_sent": null,
+      "message_context": null
+    },
+    {
+      "run_id": "sample01",
+      "turn_number": 1,
+      "agent_id": "agent_b",
+      "timestamp": "2026-04-11T01:06:46.341003+00:00",
+      "observable_state": {
+        "position": [
+          2,
+          2
+        ],
+        "adjacent_cells": {
+          "north": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "south": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "east": {
+            "type": "wall",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "west": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          }
+        },
+        "current_cell": {
+          "type": "floor",
+          "items": [],
+          "agents": [],
+          "is_locked": null
+        },
+        "inventory": []
+      },
+      "pending_messages": [],
+      "tool_name": "look",
+      "tool_input": {},
+      "tool_output": {
+        "position": [
+          2,
+          2
+        ],
+        "current_cell": {
+          "type": "floor",
+          "items": [],
+          "agents": [],
+          "is_locked": null
+        }
+      },
+      "tool_success": true,
+      "tool_failure_reason": null,
+      "llm_reasoning": "Starting exploration. Let me see what is around me.",
+      "llm_latency_ms": 500,
+      "prompt_tokens": 900,
+      "completion_tokens": 170,
+      "belief_state": {
+        "my_position": [
+          2,
+          2
+        ],
+        "other_agent_position": null,
+        "key_location": null,
+        "door_status": null,
+        "exit_location": null,
+        "explored_cells": [],
+        "known_walls": [],
+        "known_items": {},
+        "current_goal": "Find the key",
+        "plan": "Explore systematically",
+        "information_staleness": {}
+      },
+      "actual_world_state": {
+        "grid": [
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "exit",
+            "wall"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "door"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "wall",
+            "wall"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "wall",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ]
+        ],
+        "agent_positions": {
+          "agent_a": [
+            3,
+            5
+          ],
+          "agent_b": [
+            2,
+            2
+          ]
+        },
+        "agent_inventories": {
+          "agent_a": [],
+          "agent_b": []
+        },
+        "key_position": [
+          7,
+          7
+        ],
+        "key_holder": null,
+        "door_locked": true,
+        "door_position": [
+          1,
+          7
+        ],
+        "exit_position": [
+          0,
+          6
+        ],
+        "items": {
+          "key": [
+            7,
+            7
+          ],
+          "torch": [
+            4,
+            3
+          ],
+          "old_map": [
+            6,
+            0
+          ]
+        }
+      },
+      "divergences": [],
+      "message_sent": null,
+      "message_context": null
+    },
+    {
+      "run_id": "sample01",
+      "turn_number": 2,
+      "agent_id": "agent_a",
+      "timestamp": "2026-04-11T01:06:46.341040+00:00",
+      "observable_state": {
+        "position": [
+          2,
+          5
+        ],
+        "adjacent_cells": {
+          "north": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "south": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "east": {
+            "type": "wall",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "west": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          }
+        },
+        "current_cell": {
+          "type": "floor",
+          "items": [],
+          "agents": [],
+          "is_locked": null
+        },
+        "inventory": []
+      },
+      "pending_messages": [],
+      "tool_name": "move",
+      "tool_input": {
+        "direction": "north"
+      },
+      "tool_output": {
+        "result": "Moved north to (2, 5)"
+      },
+      "tool_success": true,
+      "tool_failure_reason": null,
+      "llm_reasoning": "I see floor to the north. Let me explore that way. I think the key might be nearby.",
+      "llm_latency_ms": 550,
+      "prompt_tokens": 1000,
+      "completion_tokens": 190,
+      "belief_state": {
+        "my_position": [
+          2,
+          5
+        ],
+        "other_agent_position": null,
+        "key_location": null,
+        "door_status": null,
+        "exit_location": null,
+        "explored_cells": [],
+        "known_walls": [],
+        "known_items": {},
+        "current_goal": "Find the key",
+        "plan": "Explore systematically",
+        "information_staleness": {}
+      },
+      "actual_world_state": {
+        "grid": [
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "exit",
+            "wall"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "door"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "wall",
+            "wall"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "wall",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ]
+        ],
+        "agent_positions": {
+          "agent_a": [
+            2,
+            5
+          ],
+          "agent_b": [
+            2,
+            2
+          ]
+        },
+        "agent_inventories": {
+          "agent_a": [],
+          "agent_b": []
+        },
+        "key_position": [
+          7,
+          7
+        ],
+        "key_holder": null,
+        "door_locked": true,
+        "door_position": [
+          1,
+          7
+        ],
+        "exit_position": [
+          0,
+          6
+        ],
+        "items": {
+          "key": [
+            7,
+            7
+          ],
+          "torch": [
+            4,
+            3
+          ],
+          "old_map": [
+            6,
+            0
+          ]
+        }
+      },
+      "divergences": [],
+      "message_sent": null,
+      "message_context": null
+    },
+    {
+      "run_id": "sample01",
+      "turn_number": 2,
+      "agent_id": "agent_b",
+      "timestamp": "2026-04-11T01:06:46.341065+00:00",
+      "observable_state": {
+        "position": [
+          3,
+          2
+        ],
+        "adjacent_cells": {
+          "north": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "south": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "east": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "west": {
+            "type": "wall",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          }
+        },
+        "current_cell": {
+          "type": "floor",
+          "items": [],
+          "agents": [],
+          "is_locked": null
+        },
+        "inventory": []
+      },
+      "pending_messages": [],
+      "tool_name": "move",
+      "tool_input": {
+        "direction": "south"
+      },
+      "tool_output": {
+        "result": "Moved south to (3, 2)"
+      },
+      "tool_success": true,
+      "tool_failure_reason": null,
+      "llm_reasoning": "Going south to explore. I have not found anything yet.",
+      "llm_latency_ms": 600,
+      "prompt_tokens": 1100,
+      "completion_tokens": 210,
+      "belief_state": {
+        "my_position": [
+          3,
+          2
+        ],
+        "other_agent_position": null,
+        "key_location": null,
+        "door_status": null,
+        "exit_location": null,
+        "explored_cells": [],
+        "known_walls": [],
+        "known_items": {},
+        "current_goal": "Find the key",
+        "plan": "Explore systematically",
+        "information_staleness": {}
+      },
+      "actual_world_state": {
+        "grid": [
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "exit",
+            "wall"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "door"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "wall",
+            "wall"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "wall",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ]
+        ],
+        "agent_positions": {
+          "agent_a": [
+            2,
+            5
+          ],
+          "agent_b": [
+            3,
+            2
+          ]
+        },
+        "agent_inventories": {
+          "agent_a": [],
+          "agent_b": []
+        },
+        "key_position": [
+          7,
+          7
+        ],
+        "key_holder": null,
+        "door_locked": true,
+        "door_position": [
+          1,
+          7
+        ],
+        "exit_position": [
+          0,
+          6
+        ],
+        "items": {
+          "key": [
+            7,
+            7
+          ],
+          "torch": [
+            4,
+            3
+          ],
+          "old_map": [
+            6,
+            0
+          ]
+        }
+      },
+      "divergences": [],
+      "message_sent": null,
+      "message_context": null
+    },
+    {
+      "run_id": "sample01",
+      "turn_number": 3,
+      "agent_id": "agent_a",
+      "timestamp": "2026-04-11T01:06:46.341166+00:00",
+      "observable_state": {
+        "position": [
+          2,
+          6
+        ],
+        "adjacent_cells": {
+          "north": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "south": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "east": {
+            "type": "wall",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "west": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          }
+        },
+        "current_cell": {
+          "type": "wall",
+          "items": [],
+          "agents": [],
+          "is_locked": null
+        },
+        "inventory": []
+      },
+      "pending_messages": [],
+      "tool_name": "move",
+      "tool_input": {
+        "direction": "east"
+      },
+      "tool_output": {
+        "result": "Moved east to (2, 6)"
+      },
+      "tool_success": true,
+      "tool_failure_reason": null,
+      "llm_reasoning": "Moving east to cover more ground. Still looking for the key. I think agent_b is at (2,2) where I last saw nothing.",
+      "llm_latency_ms": 650,
+      "prompt_tokens": 1200,
+      "completion_tokens": 230,
+      "belief_state": {
+        "my_position": [
+          2,
+          6
+        ],
+        "other_agent_position": [
+          2,
+          2
+        ],
+        "key_location": "unknown",
+        "door_status": null,
+        "exit_location": null,
+        "explored_cells": [],
+        "known_walls": [],
+        "known_items": {},
+        "current_goal": "Find the key",
+        "plan": "Explore systematically",
+        "information_staleness": {}
+      },
+      "actual_world_state": {
+        "grid": [
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "exit",
+            "wall"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "door"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "wall",
+            "wall"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "wall",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ]
+        ],
+        "agent_positions": {
+          "agent_a": [
+            2,
+            6
+          ],
+          "agent_b": [
+            3,
+            2
+          ]
+        },
+        "agent_inventories": {
+          "agent_a": [],
+          "agent_b": []
+        },
+        "key_position": [
+          7,
+          7
+        ],
+        "key_holder": null,
+        "door_locked": true,
+        "door_position": [
+          1,
+          7
+        ],
+        "exit_position": [
+          0,
+          6
+        ],
+        "items": {
+          "key": [
+            7,
+            7
+          ],
+          "torch": [
+            4,
+            3
+          ],
+          "old_map": [
+            6,
+            0
+          ]
+        }
+      },
+      "divergences": [
+        {
+          "field": "other_agent_position",
+          "believed_value": "(2, 2)",
+          "actual_value": "(3, 2)",
+          "staleness_turns": 2,
+          "severity": "medium",
+          "category": "stale_information"
+        }
+      ],
+      "message_sent": null,
+      "message_context": null
+    },
+    {
+      "run_id": "sample01",
+      "turn_number": 3,
+      "agent_id": "agent_b",
+      "timestamp": "2026-04-11T01:06:46.341196+00:00",
+      "observable_state": {
+        "position": [
+          3,
+          2
+        ],
+        "adjacent_cells": {
+          "north": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "south": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "east": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "west": {
+            "type": "wall",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          }
+        },
+        "current_cell": {
+          "type": "floor",
+          "items": [],
+          "agents": [],
+          "is_locked": null
+        },
+        "inventory": []
+      },
+      "pending_messages": [],
+      "tool_name": "send_message",
+      "tool_input": {
+        "agent": "agent_a",
+        "message": "I am heading south, exploring the bottom area"
+      },
+      "tool_output": {
+        "result": "Action completed"
+      },
+      "tool_success": true,
+      "tool_failure_reason": null,
+      "llm_reasoning": "Let me update agent_a on my position and plans.",
+      "llm_latency_ms": 700,
+      "prompt_tokens": 1300,
+      "completion_tokens": 250,
+      "belief_state": {
+        "my_position": [
+          3,
+          2
+        ],
+        "other_agent_position": [
+          2,
+          5
+        ],
+        "key_location": null,
+        "door_status": null,
+        "exit_location": null,
+        "explored_cells": [],
+        "known_walls": [],
+        "known_items": {},
+        "current_goal": "Find the key",
+        "plan": "Explore systematically",
+        "information_staleness": {}
+      },
+      "actual_world_state": {
+        "grid": [
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "exit",
+            "wall"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "door"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "wall",
+            "wall"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "wall",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ]
+        ],
+        "agent_positions": {
+          "agent_a": [
+            2,
+            6
+          ],
+          "agent_b": [
+            3,
+            2
+          ]
+        },
+        "agent_inventories": {
+          "agent_a": [],
+          "agent_b": []
+        },
+        "key_position": [
+          7,
+          7
+        ],
+        "key_holder": null,
+        "door_locked": true,
+        "door_position": [
+          1,
+          7
+        ],
+        "exit_position": [
+          0,
+          6
+        ],
+        "items": {
+          "key": [
+            7,
+            7
+          ],
+          "torch": [
+            4,
+            3
+          ],
+          "old_map": [
+            6,
+            0
+          ]
+        }
+      },
+      "divergences": [
+        {
+          "field": "other_agent_position",
+          "believed_value": "(2, 5)",
+          "actual_value": "(2, 6)",
+          "staleness_turns": 1,
+          "severity": "medium",
+          "category": "stale_information"
+        }
+      ],
+      "message_sent": {
+        "from_agent": "agent_b",
+        "to_agent": "agent_a",
+        "content": "I am heading south, exploring the bottom area",
+        "sent_turn": 3,
+        "delivered_turn": 4
+      },
+      "message_context": null
+    },
+    {
+      "run_id": "sample01",
+      "turn_number": 4,
+      "agent_id": "agent_a",
+      "timestamp": "2026-04-11T01:06:46.341221+00:00",
+      "observable_state": {
+        "position": [
+          3,
+          6
+        ],
+        "adjacent_cells": {
+          "north": {
+            "type": "wall",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "south": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "east": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "west": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          }
+        },
+        "current_cell": {
+          "type": "floor",
+          "items": [],
+          "agents": [],
+          "is_locked": null
+        },
+        "inventory": []
+      },
+      "pending_messages": [],
+      "tool_name": "move",
+      "tool_input": {
+        "direction": "south"
+      },
+      "tool_output": {
+        "result": "Moved south to (3, 6)"
+      },
+      "tool_success": true,
+      "tool_failure_reason": null,
+      "llm_reasoning": "I can see the exit to the north! It is at (0,6). Moving south to find the key. I believe the door is somewhere nearby.",
+      "llm_latency_ms": 750,
+      "prompt_tokens": 1400,
+      "completion_tokens": 270,
+      "belief_state": {
+        "my_position": [
+          3,
+          6
+        ],
+        "other_agent_position": [
+          2,
+          2
+        ],
+        "key_location": "unknown",
+        "door_status": null,
+        "exit_location": null,
+        "explored_cells": [],
+        "known_walls": [],
+        "known_items": {},
+        "current_goal": "Find the door",
+        "plan": "Explore systematically",
+        "information_staleness": {}
+      },
+      "actual_world_state": {
+        "grid": [
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "exit",
+            "wall"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "door"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "wall",
+            "wall"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "wall",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ]
+        ],
+        "agent_positions": {
+          "agent_a": [
+            3,
+            6
+          ],
+          "agent_b": [
+            3,
+            2
+          ]
+        },
+        "agent_inventories": {
+          "agent_a": [],
+          "agent_b": []
+        },
+        "key_position": [
+          7,
+          7
+        ],
+        "key_holder": null,
+        "door_locked": true,
+        "door_position": [
+          1,
+          7
+        ],
+        "exit_position": [
+          0,
+          6
+        ],
+        "items": {
+          "key": [
+            7,
+            7
+          ],
+          "torch": [
+            4,
+            3
+          ],
+          "old_map": [
+            6,
+            0
+          ]
+        }
+      },
+      "divergences": [
+        {
+          "field": "other_agent_position",
+          "believed_value": "(2, 2)",
+          "actual_value": "(3, 2)",
+          "staleness_turns": 3,
+          "severity": "medium",
+          "category": "stale_information"
+        }
+      ],
+      "message_sent": null,
+      "message_context": null
+    },
+    {
+      "run_id": "sample01",
+      "turn_number": 4,
+      "agent_id": "agent_b",
+      "timestamp": "2026-04-11T01:06:46.341248+00:00",
+      "observable_state": {
+        "position": [
+          4,
+          2
+        ],
+        "adjacent_cells": {
+          "north": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "south": {
+            "type": "floor",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          },
+          "east": {
+            "type": "floor",
+            "items": [
+              "torch"
+            ],
+            "agents": [],
+            "is_locked": null
+          },
+          "west": {
+            "type": "wall",
+            "items": [],
+            "agents": [],
+            "is_locked": null
+          }
+        },
+        "current_cell": {
+          "type": "floor",
+          "items": [],
+          "agents": [],
+          "is_locked": null
+        },
+        "inventory": []
+      },
+      "pending_messages": [],
+      "tool_name": "move",
+      "tool_input": {
+        "direction": "south"
+      },
+      "tool_output": {
+        "result": "Moved south to (4, 2)"
+      },
+      "tool_success": true,
+      "tool_failure_reason": null,
+      "llm_reasoning": "Continuing south. I think agent_a is at (2,5) but they might have moved. Looking for the key.",
+      "llm_latency_ms": 800,
+      "prompt_tokens": 1500,
+      "completion_tokens": 290,
+      "belief_state": {
+        "my_position": [
+          4,
+          2
+        ],
+        "other_agent_position": [
+          2,
+          5
+        ],
+        "key_location": null,
+        "door_status": null,
+        "exit_location": null,
+        "explored_cells": [],
+        "known_walls": [],
+        "known_items": {},
+        "current_goal": "Find the door",
+        "plan": "Explore systematically",
+        "information_staleness": {}
+      },
+      "actual_world_state": {
+        "grid": [
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "exit",
+            "wall"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "door"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "wall",
+            "wall"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "wall",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ],
+          [
+            "floor",
+            "floor",
+            "floor",
+            "wall",
+            "floor",
+            "floor",
+            "floor",
+            "floor"
+          ]
+        ],
+        "agent_positions": {
+          "agent_a": [
+            3,
+            6
+          ],
+          "agent_b": [
+            4,
+            2
+          ]
+        },
+        "agent_inventories": {
+          "agent_a": [],
+          "agent_b": []
+        },
+        "key_position": [
+          7,
+          7
+        ],
+        "key_holder": null,
+        "door_locked": true,
+        "door_position": [
+          1,
+          7
+        ],
+        "exit_position": [
+          0,
+          6
+        ],
+        "items": {
+          "key": [
+            7,
+            7
+          ],
+          "torch": [
+            4,
+            3
+          ],
+          "old_map": [
+            6,
+            0
+          ]
+        }
+      },
+      "divergences": [
+        {
+          "field": "other_agent_position",
+          "believed_value": "(2, 5)",
+          "actual_value": "(3, 6)",
+          "staleness_turns": 2,
+          "severity": "medium",
+          "category": "stale_information"
+        }
+      ],
+      "message_sent": null,
+      "message_context": null
+    }
+  ]
+}

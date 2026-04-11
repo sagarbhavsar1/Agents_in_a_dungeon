@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Run Detail — Dungeon Agents</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <a href="/" class="back">&larr; Runs</a>
+        <h1 id="run-title">Loading...</h1>
+        <div id="run-meta" class="meta"></div>
+    </header>
+
+    <main class="run-detail">
+        <!-- Left: Grid -->
+        <section class="panel grid-panel">
+            <canvas id="grid-canvas" width="400" height="400"></canvas>
+            <div id="grid-legend" class="legend">
+                <span class="legend-item"><span class="swatch wall"></span>Wall</span>
+                <span class="legend-item"><span class="swatch door-locked"></span>Door (locked)</span>
+                <span class="legend-item"><span class="swatch door-unlocked"></span>Door (open)</span>
+                <span class="legend-item"><span class="swatch exit"></span>Exit</span>
+                <span class="legend-item"><span class="swatch key-item"></span>Key</span>
+                <span class="legend-item"><span class="swatch agent-a"></span>Agent A</span>
+                <span class="legend-item"><span class="swatch agent-b"></span>Agent B</span>
+            </div>
+        </section>
+
+        <!-- Right: Agent panels -->
+        <section class="panel agents-panel">
+            <div id="agent-a-panel" class="agent-card">
+                <h3 class="agent-a-color">Agent A</h3>
+                <div class="agent-body"></div>
+            </div>
+            <div id="agent-b-panel" class="agent-card">
+                <h3 class="agent-b-color">Agent B</h3>
+                <div class="agent-body"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Timeline -->
+    <section class="timeline-section">
+        <div class="transport">
+            <button id="btn-first" title="First turn">&laquo;</button>
+            <button id="btn-prev" title="Previous turn (Left arrow)">&lsaquo;</button>
+            <button id="btn-play" title="Play/Pause (Space)">&#9654;</button>
+            <button id="btn-next" title="Next turn (Right arrow)">&rsaquo;</button>
+            <button id="btn-last" title="Last turn">&raquo;</button>
+            <span id="turn-display" class="mono">Turn 0 / 0</span>
+        </div>
+        <canvas id="timeline-canvas" height="80"></canvas>
+    </section>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/grid.js"></script>
+    <script src="/js/timeline.js"></script>
+    <script src="/js/replay.js"></script>
+</body>
+</html>

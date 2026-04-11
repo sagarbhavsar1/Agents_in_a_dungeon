@@ -1,0 +1,397 @@
+/* Dungeon Agents — intentional dark theme.
+   Monospace for data, system sans-serif for labels.
+   No rounded corners. No gradients. No shadows. Dense information. */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0a0a0a;
+    --surface: #111;
+    --surface2: #191919;
+    --border: #262626;
+    --text: #e5e5e5;
+    --text-muted: #737373;
+    --agent-a: #3b82f6;
+    --agent-b: #a855f7;
+    --divergence: #ef4444;
+    --warn: #f59e0b;
+    --success: #22c55e;
+    --info: #6b7280;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.mono {
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 12px;
+}
+
+/* -- Header -- */
+
+header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+}
+
+header h1 {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text);
+}
+
+header .subtitle {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+header .back {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 12px;
+}
+
+header .back:hover {
+    color: var(--text);
+}
+
+header .meta {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* -- Run list table -- */
+
+main {
+    padding: 16px 24px;
+}
+
+#runs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 12px;
+}
+
+#runs-table th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-weight: 500;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+#runs-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+.run-row {
+    cursor: pointer;
+}
+
+.run-row:hover td {
+    background: var(--surface);
+}
+
+.empty {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 40px 12px !important;
+    font-family: -apple-system, system-ui, sans-serif;
+}
+
+.outcome-success { color: var(--success); }
+.outcome-failure { color: var(--divergence); }
+.text-warn { color: var(--warn); }
+.text-muted { color: var(--text-muted); }
+
+/* -- Run detail layout -- */
+
+.run-detail {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 0;
+    padding: 0;
+    min-height: 0;
+}
+
+.panel {
+    padding: 16px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+}
+
+.panel:last-child {
+    border-right: none;
+}
+
+/* Grid panel */
+
+.grid-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding-top: 24px;
+}
+
+#grid-canvas {
+    image-rendering: pixelated;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.swatch {
+    width: 10px;
+    height: 10px;
+    display: inline-block;
+}
+
+.swatch.wall { background: #3a3a3a; }
+.swatch.door-locked { background: #8b4513; }
+.swatch.door-unlocked { background: #2d6b2d; }
+.swatch.exit { background: var(--success); }
+.swatch.key-item { background: #eab308; transform: rotate(45deg); width: 8px; height: 8px; }
+.swatch.agent-a { background: var(--agent-a); border-radius: 50%; }
+.swatch.agent-b { background: var(--agent-b); border-radius: 50%; }
+
+/* Agent panels */
+
+.agents-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+}
+
+.agent-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 12px;
+}
+
+.agent-card h3 {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: 0.03em;
+}
+
+.agent-a-color { color: var(--agent-a); }
+.agent-b-color { color: var(--agent-b); }
+
+.agent-info, .agent-action, .agent-messages {
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.label {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.action-success { color: var(--text); }
+.action-failure { color: var(--divergence); }
+
+.failure-reason {
+    color: var(--warn);
+    font-size: 10px;
+    font-family: "SF Mono", monospace;
+}
+
+.message-bubble {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    font-size: 11px;
+    font-style: italic;
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.message-bubble.sent {
+    border-color: var(--agent-a);
+}
+
+/* Reasoning */
+
+.reasoning {
+    margin-top: 6px;
+    font-size: 11px;
+}
+
+.reasoning summary {
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.reasoning summary:hover {
+    color: var(--text);
+}
+
+.reasoning pre {
+    margin-top: 6px;
+    padding: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-family: "SF Mono", monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    color: var(--text-muted);
+}
+
+/* Belief table — the core diagnostic feature */
+
+.belief-table {
+    margin-top: 8px;
+}
+
+.belief-header {
+    font-family: "SF Mono", monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.belief-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.belief-table td {
+    padding: 3px 6px;
+    vertical-align: top;
+}
+
+.belief-icon {
+    width: 16px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.belief-label {
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.belief-value {
+    font-size: 11px;
+}
+
+.belief-actual {
+    font-size: 10px;
+}
+
+.belief-stale {
+    font-size: 10px;
+    font-family: "SF Mono", monospace;
+}
+
+/* Divergence severity row colors */
+.div-correct .belief-icon { color: var(--success); }
+.div-unknown .belief-icon { color: var(--info); }
+.div-low .belief-icon { color: var(--info); }
+.div-medium { background: rgba(107, 114, 128, 0.08); }
+.div-medium .belief-icon { color: var(--warn); }
+.div-high { background: rgba(245, 158, 11, 0.08); }
+.div-high .belief-icon { color: var(--warn); }
+.div-high .belief-stale { color: var(--warn); }
+.div-critical { background: rgba(239, 68, 68, 0.08); }
+.div-critical .belief-icon { color: var(--divergence); }
+.div-critical .belief-stale { color: var(--divergence); }
+
+.belief-goal {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* -- Timeline -- */
+
+.timeline-section {
+    border-top: 1px solid var(--border);
+    padding: 12px 24px;
+    background: var(--surface);
+}
+
+.transport {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.transport button {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.transport button:hover {
+    background: var(--surface2);
+    border-color: var(--text-muted);
+}
+
+#turn-display {
+    margin-left: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+#timeline-canvas {
+    width: 100%;
+    display: block;
+}
