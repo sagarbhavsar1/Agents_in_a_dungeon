@@ -9,18 +9,18 @@ const TimelineRenderer = {
     onTurnClick: null, // callback
 
     colors: {
-        bg: '#0a0a0a',
-        track: '#1f1f1f',
-        trackActive: '#333',
-        cursor: '#e5e5e5',
-        divCritical: '#ef4444',
-        divHigh: '#f59e0b',
-        divMedium: '#6b7280',
-        divLow: '#374151',
-        milestone: '#22c55e',
-        messageMarker: '#3b82f6',
-        text: '#737373',
-        textBright: '#e5e5e5',
+        bg: '#2a1e0e',
+        track: '#3a2a14',
+        trackActive: '#6b4c24',
+        cursor: '#f8e8c0',
+        divCritical: '#e83028',
+        divHigh: '#f0b830',
+        divMedium: '#8898c0',
+        divLow: '#5a3c1c',
+        milestone: '#48c870',
+        messageMarker: '#3888f8',
+        text: '#a08858',
+        textBright: '#f8e8c0',
     },
 
     init(canvasId, events, totalTurns) {

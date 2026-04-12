@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dungeon Agents</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <header>
-        <h1>DUNGEON AGENTS</h1>
-        <span class="subtitle">Run Archive</span>
+        <h1>&#9670; DUNGEON AGENTS &#9670;</h1>
+        <span class="subtitle">CAVE EXPLORER v1.0</span>
     </header>
 
     <main>
@@ -57,7 +60,7 @@
                     }[run.outcome] || '';
 
                     row.innerHTML = `
-                        <td class="mono">${run.run_id}</td>
+                        <td>${run.run_id}</td>
                         <td class="${outcomeClass}">${run.outcome.replace('failure_', '')}</td>
                         <td>${run.total_turns}</td>
                         <td class="${s.belief_divergence_count > 10 ? 'text-warn' : ''}">${s.belief_divergence_count || 0}</td>
@@ -69,7 +72,7 @@
                     tbody.appendChild(row);
                 }
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="8" class="empty">Error loading runs: ${err.message}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="empty">Error: ${err.message}</td></tr>`;
             }
         }
         loadRuns();

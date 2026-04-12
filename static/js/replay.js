@@ -112,7 +112,7 @@ const Replay = {
 
     renderAgentPanel(agentId, event) {
         const panelId = agentId === 'agent_a' ? 'agent-a-panel' : 'agent-b-panel';
-        const body = document.querySelector(`#${panelId} .agent-body`);
+        const body = document.querySelector(`#${panelId} .agent-card-body`);
 
         if (!event) {
             body.innerHTML = '<p class="text-muted">No action this turn</p>';
