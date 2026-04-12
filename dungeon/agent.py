@@ -76,7 +76,7 @@ class DungeonAgent:
         self,
         agent_id: str,
         client: anthropic.Anthropic,
-        model: str = "claude-sonnet-4-20250514",
+        model: str = "claude-sonnet-4-6",
     ):
         self.agent_id = agent_id
         self.other_agent_id = "agent_b" if agent_id == "agent_a" else "agent_a"
@@ -122,6 +122,11 @@ class DungeonAgent:
         user_content = self._build_turn_message(observable_state, pending_messages, turn_number)
         self.messages.append({"role": "user", "content": user_content})
 
+        # Trim conversation history to last MAX_HISTORY_TURNS turns to prevent
+        # unbounded context growth (3 messages per turn: user, assistant, tool_result)
+        MAX_HISTORY_TURNS = 10
+        trimmed = self.messages[-(MAX_HISTORY_TURNS * 3):] if len(self.messages) > MAX_HISTORY_TURNS * 3 else self.messages
+
         # Call Claude
         start = time.monotonic()
         response = self.client.messages.create(
@@ -129,7 +134,7 @@ class DungeonAgent:
             max_tokens=1024,
             system=self.system_prompt,
             tools=AGENT_TOOLS,
-            messages=self.messages,
+            messages=trimmed,
         )
         latency_ms = int((time.monotonic() - start) * 1000)
 

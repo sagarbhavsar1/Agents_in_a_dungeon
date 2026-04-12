@@ -256,7 +256,7 @@ def _beliefs_match_key(belief_key: str, actual: WorldSnapshot) -> bool:
     belief_lower = belief_key.lower()
 
     if actual.key_holder:
-        return actual.key_holder in belief_lower or "has" in belief_lower
+        return actual.key_holder in belief_lower or "has" in belief_lower or "have" in belief_lower
     if actual.key_position:
         pos_str = str(actual.key_position)
         return pos_str in belief_key or (
