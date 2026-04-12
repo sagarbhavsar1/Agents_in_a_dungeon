@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Run Detail — Dungeon Agents</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
     <header>
-        <a href="/" class="back">&larr; Runs</a>
+        <a href="/" class="back">&laquo; BACK</a>
         <h1 id="run-title">Loading...</h1>
         <div id="run-meta" class="meta"></div>
     </header>
@@ -19,8 +22,9 @@
             <canvas id="grid-canvas" width="400" height="400"></canvas>
             <div id="grid-legend" class="legend">
                 <span class="legend-item"><span class="swatch wall"></span>Wall</span>
-                <span class="legend-item"><span class="swatch door-locked"></span>Door (locked)</span>
-                <span class="legend-item"><span class="swatch door-unlocked"></span>Door (open)</span>
+                <span class="legend-item"><span class="swatch floor"></span>Floor</span>
+                <span class="legend-item"><span class="swatch door-locked"></span>Door &#x1F512;</span>
+                <span class="legend-item"><span class="swatch door-unlocked"></span>Door &#x1F513;</span>
                 <span class="legend-item"><span class="swatch exit"></span>Exit</span>
                 <span class="legend-item"><span class="swatch key-item"></span>Key</span>
                 <span class="legend-item"><span class="swatch agent-a"></span>Agent A</span>
@@ -31,12 +35,16 @@
         <!-- Right: Agent panels -->
         <section class="panel agents-panel">
             <div id="agent-a-panel" class="agent-card">
-                <h3 class="agent-a-color">Agent A</h3>
-                <div class="agent-body"></div>
+                <div class="agent-card-header">
+                    <h3 class="agent-a-color">&#9670; AGENT A</h3>
+                </div>
+                <div class="agent-card-body agent-body"></div>
             </div>
             <div id="agent-b-panel" class="agent-card">
-                <h3 class="agent-b-color">Agent B</h3>
-                <div class="agent-body"></div>
+                <div class="agent-card-header">
+                    <h3 class="agent-b-color">&#9670; AGENT B</h3>
+                </div>
+                <div class="agent-card-body agent-body"></div>
             </div>
         </section>
     </main>
@@ -45,11 +53,11 @@
     <section class="timeline-section">
         <div class="transport">
             <button id="btn-first" title="First turn">&laquo;</button>
-            <button id="btn-prev" title="Previous turn (Left arrow)">&lsaquo;</button>
+            <button id="btn-prev" title="Previous (Left arrow)">&lsaquo;</button>
             <button id="btn-play" title="Play/Pause (Space)">&#9654;</button>
-            <button id="btn-next" title="Next turn (Right arrow)">&rsaquo;</button>
+            <button id="btn-next" title="Next (Right arrow)">&rsaquo;</button>
             <button id="btn-last" title="Last turn">&raquo;</button>
-            <span id="turn-display" class="mono">Turn 0 / 0</span>
+            <span id="turn-display">Turn 0 / 0</span>
         </div>
         <canvas id="timeline-canvas" height="80"></canvas>
     </section>
