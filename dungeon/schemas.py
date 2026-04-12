@@ -153,6 +153,11 @@ class TurnEvent(BaseModel):
     actual_world_state: WorldSnapshot
     divergences: list[BeliefDivergence] = Field(default_factory=list)
 
+    # Decision quality — surfaces "reasonable decision on stale info"
+    expected_tool_outcome: str | None = None   # "success" or "failure" given actual world
+    outcome_matched_expectation: bool | None = None  # did reality match what should have happened?
+    decision_info_age: int = 0  # max staleness (turns) of fields relevant to this action
+
     # Coordination
     message_sent: Message | None = None
     message_context: MessageContext | None = None
@@ -198,7 +203,32 @@ class RunStats(BaseModel):
     agents_reached_exit: list[str] = Field(default_factory=list)
     belief_divergence_count: int = 0
     peak_belief_staleness: int = 0
-    coordination_failures: int = 0
+    coordination_failures: int = 0  # turns where agent acted on stale info and failed
+    stale_decision_failures: int = 0  # outcome_matched_expectation=False AND decision_info_age > 2
+
+
+# ---------------------------------------------------------------------------
+# Run diagnosis (post-hoc analysis of what went wrong)
+# ---------------------------------------------------------------------------
+
+class FailureMode(str, Enum):
+    STALE_BELIEFS = "stale_beliefs"
+    POOR_COORDINATION = "poor_coordination"
+    EXPLORATION_INEFFICIENCY = "exploration_inefficiency"
+    STUCK_LOOP = "stuck_loop"
+    NONE = "none"
+
+
+class RunDiagnosis(BaseModel):
+    """Post-hoc analysis of a run. Answers: what went wrong and why."""
+    primary_failure_mode: FailureMode
+    bottleneck_turn: int | None = None  # the turn where the run diverged from optimal
+    bottleneck_agent: str | None = None
+    stale_decision_rate: float = 0.0  # fraction of turns with decision_info_age > threshold
+    avg_divergences_per_turn: float = 0.0
+    coordination_gap_turns: int = 0  # turns where agents had contradictory beliefs about key/door
+    wasted_turns: int = 0  # wait + failed moves
+    key_insights: list[str] = Field(default_factory=list)  # human-readable bullets
 
 
 class RunManifest(BaseModel):
@@ -212,6 +242,41 @@ class RunManifest(BaseModel):
     world_config: WorldConfig
     agent_configs: dict[str, AgentConfig] = Field(default_factory=dict)
     summary_stats: RunStats = Field(default_factory=RunStats)
+    langfuse_trace_id: str | None = None   # for proxy endpoint + deep-link
+    langfuse_trace_url: str | None = None  # direct URL to Langfuse dashboard
+
+
+# ---------------------------------------------------------------------------
+# Causal chain (simplified: when did a belief go stale and how long did it last)
+# ---------------------------------------------------------------------------
+
+class FieldStalenessWindow(BaseModel):
+    """One continuous period where an agent's belief about a field was wrong.
+
+    Answers three questions:
+    - When was the belief last correct? (last_correct_turn)
+    - When did ground truth change? (ground_truth_changed_turn)
+    - How long did the agent act on wrong info? (duration_turns)
+    """
+    field: str           # which belief field: key_location, door_status, other_agent_position
+    agent_id: str
+    believed_value: str  # what the agent believed during the window
+    actual_value: str    # what was actually true
+
+    last_correct_turn: int | None    # last turn before stale window when belief matched reality
+    ground_truth_changed_turn: int   # turn when actual world state changed (causing divergence)
+    stale_start_turn: int            # first turn with active divergence
+    stale_end_turn: int | None       # turn divergence resolved (None = never resolved by end of run)
+    duration_turns: int              # stale_end - stale_start (or run_end - stale_start if unresolved)
+
+
+class CausalChain(BaseModel):
+    """Simplified causal chain for a run: all stale windows across all fields and agents."""
+    run_id: str
+    windows: list[FieldStalenessWindow] = Field(default_factory=list)
+    total_stale_agent_turns: int = 0  # sum of all window durations (can double-count across fields)
+    worst_window: FieldStalenessWindow | None = None  # longest single stale window
+    summary: str = ""  # one human-readable line for the run detail header
 
 
 # ---------------------------------------------------------------------------
@@ -221,3 +286,5 @@ class RunManifest(BaseModel):
 class RunLog(BaseModel):
     manifest: RunManifest
     events: list[TurnEvent] = Field(default_factory=list)
+    diagnosis: RunDiagnosis | None = None
+    causal_chain: CausalChain | None = None

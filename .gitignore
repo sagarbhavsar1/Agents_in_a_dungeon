@@ -1,0 +1,19 @@
+# Environment — never commit secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Runs (large JSON files — commit selectively)
+runs/*.json
+!runs/.gitkeep
+
+# macOS
+.DS_Store

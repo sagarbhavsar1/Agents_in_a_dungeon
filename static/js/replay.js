@@ -68,8 +68,111 @@ const Replay = {
             else if (e.key === 'End') this.goToTurn(this.totalTurns);
         });
 
+        // Render diagnosis panel
+        this.renderDiagnosis(this.runData.diagnosis);
+
+        // Render causal chain
+        this.renderCausalChain(this.runData.causal_chain);
+
+        // Init Langfuse trace tab (loads lazily when tab is clicked)
+        LangfuseTrace.init(runId, this.manifest);
+
         // Initial render
         this.goToTurn(1);
+    },
+
+    renderDiagnosis(diagnosis) {
+        if (!diagnosis) return;
+        const panel = document.getElementById('diagnosis-panel');
+        panel.style.display = 'block';
+
+        const badge = document.getElementById('diagnosis-mode');
+        badge.textContent = diagnosis.primary_failure_mode.replace(/_/g, ' ');
+        badge.className = `diagnosis-mode-badge mode-${diagnosis.primary_failure_mode}`;
+
+        const statsEl = document.getElementById('diagnosis-stats');
+        statsEl.innerHTML = [
+            { value: diagnosis.wasted_turns, label: 'wasted turns' },
+            { value: (diagnosis.stale_decision_rate * 100).toFixed(0) + '%', label: 'stale rate' },
+            { value: diagnosis.avg_divergences_per_turn.toFixed(1), label: 'divs/turn' },
+            { value: diagnosis.coordination_gap_turns, label: 'coord gaps' },
+        ].map(s =>
+            `<div class="diag-stat"><span class="diag-value">${s.value}</span><span class="diag-key">${s.label}</span></div>`
+        ).join('');
+
+        const insightsEl = document.getElementById('diagnosis-insights');
+        insightsEl.innerHTML = diagnosis.key_insights.length
+            ? diagnosis.key_insights.map(i => `<li>${this.escapeHtml(i)}</li>`).join('')
+            : '<li>No issues detected — clean run</li>';
+    },
+
+    renderCausalChain(chain) {
+        if (!chain || !chain.windows || chain.windows.length === 0) return;
+        document.getElementById('causal-panel').style.display = 'block';
+        document.getElementById('causal-summary').textContent = chain.summary || '';
+
+        const total = this.totalTurns;
+        const container = document.getElementById('causal-windows');
+
+        container.innerHTML = chain.windows.map((w, i) => {
+            const isWorst = i === 0;
+            const agentLabel = w.agent_id === 'agent_a' ? 'A' : 'B';
+            const agentColor = w.agent_id === 'agent_a' ? 'agent-a-color' : 'agent-b-color';
+            const fieldLabel = w.field.replace(/_/g, ' ');
+            const fieldClass = `causal-field-${w.field}`;
+            const statusClass = w.stale_end_turn ? 'cw-resolved' : 'cw-unresolved';
+            const statusText = w.stale_end_turn ? 'resolved' : 'never resolved';
+
+            // Bar segment percentages
+            const pct = t => (t / total * 100).toFixed(1);
+            const correctEnd = w.last_correct_turn || 0;
+            const staleStart = w.stale_start_turn;
+            const staleEnd = w.stale_end_turn || total;
+            const gtMarker = w.ground_truth_changed_turn;
+
+            const correctW = pct(correctEnd);
+            const staleL   = pct(staleStart);
+            const staleW   = pct(staleEnd - staleStart);
+            const markerL  = pct(gtMarker);
+
+            // Narrative: what the agent believed vs what was true
+            const believed = this.escapeHtml(w.believed_value || '?');
+            const actual   = this.escapeHtml(w.actual_value   || '?');
+
+            return `
+            <div class="cw ${isWorst ? 'cw-worst' : ''}">
+                <div class="cw-head">
+                    <span class="cw-agent ${agentColor}">AGENT ${agentLabel}</span>
+                    <span class="cw-field ${fieldClass}">${fieldLabel}</span>
+                    <span class="cw-duration">${w.duration_turns}t stale</span>
+                    <span class="${statusClass}">${statusText}</span>
+                    <button class="cw-jump" onclick="Replay.goToTurn(${staleStart})">&#8594; T${staleStart}</button>
+                </div>
+                <div class="cw-narrative">
+                    believed <span class="cw-believed">${believed}</span>
+                    &rarr; actually <span class="cw-actual">${actual}</span>
+                </div>
+                <div class="cw-bar-wrap">
+                    <div class="cw-bar">
+                        <div class="cw-seg-correct"  style="width:${correctW}%"></div>
+                        <div class="cw-seg-stale"    style="left:${staleL}%; width:${staleW}%"></div>
+                        <div class="cw-bar-marker"   style="left:${markerL}%" title="truth changed T${gtMarker}"></div>
+                    </div>
+                    <div class="cw-bar-labels">
+                        <span style="left:0%">T1</span>
+                        ${w.last_correct_turn ? `<span style="left:${correctW}%" class="cw-lbl-correct">T${w.last_correct_turn}</span>` : ''}
+                        <span style="left:${markerL}%" class="cw-lbl-marker">T${gtMarker}</span>
+                        ${w.stale_end_turn ? `<span style="left:${pct(staleEnd)}%" class="cw-lbl-resolved">T${w.stale_end_turn}</span>` : ''}
+                        <span style="left:100%" class="cw-lbl-end">T${total}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    },
+
+    _truncate(str, n) {
+        if (!str) return '—';
+        return str.length > n ? str.slice(0, n) + '…' : str;
     },
 
     goToTurn(turn) {
@@ -136,6 +239,13 @@ const Replay = {
         if (!event.tool_success && event.tool_failure_reason) {
             html += ` <span class="failure-reason">${event.tool_failure_reason}</span>`;
         }
+        // Decision quality badges
+        if (event.decision_info_age > 2) {
+            html += ` <span class="dq-badge dq-stale">${event.decision_info_age}t stale</span>`;
+        }
+        if (event.outcome_matched_expectation === false) {
+            html += ` <span class="dq-badge dq-mismatch">unexpected ${event.expected_tool_outcome === 'success' ? 'fail' : 'pass'}</span>`;
+        }
         html += `</div>`;
 
         // Messages received
@@ -157,9 +267,6 @@ const Replay = {
 
         // Reasoning (collapsible)
         if (event.llm_reasoning) {
-            const short = event.llm_reasoning.length > 200
-                ? event.llm_reasoning.substring(0, 200) + '...'
-                : event.llm_reasoning;
             html += `<details class="reasoning">`;
             html += `<summary>Reasoning <span class="text-muted">(${event.llm_latency_ms}ms, ${event.prompt_tokens + event.completion_tokens} tokens)</span></summary>`;
             html += `<pre>${this.escapeHtml(event.llm_reasoning)}</pre>`;

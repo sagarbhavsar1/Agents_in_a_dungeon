@@ -16,6 +16,11 @@
         <div id="run-meta" class="meta"></div>
     </header>
 
+    <nav class="tab-bar">
+        <button class="tab-btn active" data-tab="replay">&#9654; REPLAY</button>
+        <button class="tab-btn" data-tab="langfuse">&#11835; LANGFUSE TRACE</button>
+    </nav>
+
     <main class="run-detail">
         <!-- Left: Grid -->
         <section class="panel grid-panel">
@@ -49,6 +54,27 @@
         </section>
     </main>
 
+    <!-- Diagnosis panel -->
+    <section class="diagnosis-section" id="diagnosis-panel" style="display:none">
+        <div class="diagnosis-header">
+            <span class="diagnosis-label">RUN DIAGNOSIS</span>
+            <span id="diagnosis-mode" class="diagnosis-mode-badge"></span>
+        </div>
+        <div class="diagnosis-body">
+            <div class="diagnosis-stats" id="diagnosis-stats"></div>
+            <ul class="diagnosis-insights" id="diagnosis-insights"></ul>
+        </div>
+    </section>
+
+    <!-- Causal Chain -->
+    <section class="causal-section" id="causal-panel" style="display:none">
+        <div class="causal-header">
+            <span class="causal-label">WHY IT HAPPENED</span>
+            <span id="causal-summary" class="causal-summary"></span>
+        </div>
+        <div id="causal-windows"></div>
+    </section>
+
     <!-- Timeline -->
     <section class="timeline-section">
         <div class="transport">
@@ -62,9 +88,21 @@
         <canvas id="timeline-canvas" height="80"></canvas>
     </section>
 
+    <!-- Langfuse trace tab (hidden until selected) -->
+    <div id="tab-langfuse-panel" style="display:none">
+        <div class="lf-toolbar">
+            <span id="lf-status" class="lf-status"></span>
+            <button id="lf-refresh" class="lf-refresh-btn" title="Refresh from Langfuse">&#8635; Refresh</button>
+            <a id="lf-external-link" href="#" target="_blank" class="lf-ext-link" style="display:none">&#8599; Open in Langfuse</a>
+        </div>
+        <div id="lf-scores" class="lf-scores"></div>
+        <div id="lf-tree" class="lf-tree"></div>
+    </div>
+
     <script src="/js/api.js"></script>
     <script src="/js/grid.js"></script>
     <script src="/js/timeline.js"></script>
     <script src="/js/replay.js"></script>
+    <script src="/js/langfuse_trace.js"></script>
 </body>
 </html>

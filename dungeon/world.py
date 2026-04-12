@@ -61,6 +61,9 @@ class DungeonWorld:
         # Track which agents have reached the exit
         self.agents_at_exit: set[str] = set()
 
+        # Preserved initial key position (key_position becomes None after pick-up)
+        self._initial_key_position: tuple[int, int] = (0, 0)
+
         self._generate()
 
     # ------------------------------------------------------------------
@@ -68,20 +71,23 @@ class DungeonWorld:
     # ------------------------------------------------------------------
 
     def _generate(self) -> None:
-        """Generate a random but solvable dungeon."""
+        """Generate a random but solvable dungeon.
+
+        Guarantee: the door is a mandatory chokepoint — agents MUST pass
+        through it (after unlocking) to reach the exit. Key and agents
+        always start on the agent-side of the door.
+        """
         rng = self.rng
         size = self.size
 
-        # Start with all floor
+        # 1. Start with all floor
         self.grid = [[CellType.FLOOR for _ in range(size)] for _ in range(size)]
 
-        # Place walls (~15% of cells), ensuring connectivity
-        floor_cells = [(r, c) for r in range(size) for c in range(size)]
-        num_walls = int(len(floor_cells) * 0.15)
-
-        # Try placing walls one at a time, checking connectivity each time
+        # 2. Place walls (~15%), checking connectivity after each wall
+        all_cells = [(r, c) for r in range(size) for c in range(size)]
+        num_walls = int(len(all_cells) * 0.15)
         placed_walls: list[tuple[int, int]] = []
-        candidates = list(floor_cells)
+        candidates = list(all_cells)
         rng.shuffle(candidates)
 
         for pos in candidates:
@@ -91,56 +97,240 @@ class DungeonWorld:
             if self._is_connected():
                 placed_walls.append(pos)
             else:
-                # Undo — would break connectivity
                 self.grid[pos[0]][pos[1]] = CellType.FLOOR
 
         self.wall_positions = placed_walls
 
-        # Collect remaining floor cells for placement
-        free = [
+        # 3. Find a chokepoint cell to use as the door
+        #    A chokepoint: when blocked, splits the grid into exactly 2 components.
+        #    Exit goes on the smaller side; key+agents on the larger side.
+        door_pos, exit_side, agent_side = self._find_door_placement()
+
+        # 4. If no natural chokepoint exists, force one by partitioning at midrow
+        if door_pos is None:
+            door_pos, exit_side, agent_side = self._force_partition()
+
+        # 5. Place door and exit
+        self.grid[door_pos[0]][door_pos[1]] = CellType.DOOR
+        self.door_position = door_pos
+
+        rng.shuffle(exit_side)
+        exit_pos = exit_side[0]
+        self.grid[exit_pos[0]][exit_pos[1]] = CellType.EXIT
+        self.exit_position = exit_pos
+
+        # 6. Place key and agents on the agent side
+        rng.shuffle(agent_side)
+        key_pos = agent_side[0]
+        agent_a_pos = agent_side[1]
+        agent_b_pos = agent_side[2]
+
+        self.key_position = key_pos
+        self._initial_key_position = key_pos  # preserved for get_world_config()
+        self.items["key"] = key_pos
+
+        # 7. Decoy items (agent side only, so they don't lure agents past the door)
+        decoys = ["torch", "old_map", "rusty_compass"]
+        remaining = agent_side[3:]
+        num_decoys = min(rng.randint(2, 3), len(remaining))
+        rng.shuffle(remaining)
+        for i in range(num_decoys):
+            self.items[decoys[i]] = remaining[i]
+
+        self.agent_positions = {"agent_a": agent_a_pos, "agent_b": agent_b_pos}
+        self.agent_inventories = {"agent_a": [], "agent_b": []}
+
+    def _find_door_placement(
+        self,
+    ) -> tuple[tuple[int, int] | None, list[tuple[int, int]], list[tuple[int, int]]]:
+        """Search for a floor cell that is a connectivity chokepoint.
+
+        A valid door cell must:
+          1. Split the floor into exactly 2 components when blocked
+          2. Have at least one floor neighbor in EACH component (so agents
+             can physically approach the door from both sides)
+          3. Give each side enough room (exit side ≥1, agent side ≥4)
+
+        Returns (door_pos, exit_side_cells, agent_side_cells) or (None,[],[]).
+        """
+        rng = self.rng
+        floor_cells = [
+            (r, c)
+            for r in range(self.size)
+            for c in range(self.size)
+            if self.grid[r][c] == CellType.FLOOR
+        ]
+        rng.shuffle(floor_cells)
+
+        for candidate in floor_cells:
+            r, c = candidate
+            self.grid[r][c] = CellType.WALL
+            components = self._get_floor_components()
+            self.grid[r][c] = CellType.FLOOR
+
+            if len(components) != 2:
+                continue
+
+            c1_set, c2_set = set(components[0]), set(components[1])
+
+            # Verify the door candidate has floor neighbors in BOTH components.
+            # By graph theory this should always hold for articulation vertices,
+            # but guard explicitly so inaccessible doors never slip through.
+            adj_c1 = any(
+                (r + dr, c + dc) in c1_set
+                for dr, dc in DIRECTIONS.values()
+                if 0 <= r + dr < self.size and 0 <= c + dc < self.size
+            )
+            adj_c2 = any(
+                (r + dr, c + dc) in c2_set
+                for dr, dc in DIRECTIONS.values()
+                if 0 <= r + dr < self.size and 0 <= c + dc < self.size
+            )
+            if not (adj_c1 and adj_c2):
+                continue  # door only reachable from one side — skip
+
+            # Exit on smaller side, agents on larger side
+            if len(c1_set) > len(c2_set):
+                c1_set, c2_set = c2_set, c1_set
+
+            if len(c1_set) >= 1 and len(c2_set) >= 4:
+                return candidate, list(c1_set), list(c2_set)
+
+        return None, [], []
+
+    def _force_partition(
+        self,
+    ) -> tuple[tuple[int, int], list[tuple[int, int]], list[tuple[int, int]]]:
+        """Forcibly create a chokepoint by walling off an entire row, then
+        picking one cell as the door that is adjacent to cells on BOTH sides.
+
+        Called only when no natural chokepoint is found (rare).
+        """
+        rng = self.rng
+        size = self.size
+
+        mids = [size // 2, size // 2 - 1, size // 2 + 1,
+                size // 2 + 2, size // 2 - 2]
+        for mid in mids:
+            if not (0 <= mid < size):
+                continue
+
+            # Save and wall the entire row
+            orig_row = [self.grid[mid][c] for c in range(size)]
+            for c in range(size):
+                self.grid[mid][c] = CellType.WALL
+
+            components = self._get_floor_components()
+
+            if len(components) != 2:
+                # Can't split cleanly here — restore and try next row
+                for c in range(size):
+                    self.grid[mid][c] = orig_row[c]
+                continue
+
+            c1_set, c2_set = set(components[0]), set(components[1])
+
+            # Find a cell in this row that (a) was originally floor and
+            # (b) has floor neighbors in BOTH components
+            door_candidates: list[int] = []
+            for col in range(size):
+                if orig_row[col] != CellType.FLOOR:
+                    continue  # was already a wall
+
+                # Temporarily restore so neighbor check is accurate
+                self.grid[mid][col] = CellType.FLOOR
+                adj_c1 = any(
+                    (mid + dr, col + dc) in c1_set
+                    for dr, dc in DIRECTIONS.values()
+                    if 0 <= mid + dr < size and 0 <= col + dc < size
+                )
+                adj_c2 = any(
+                    (mid + dr, col + dc) in c2_set
+                    for dr, dc in DIRECTIONS.values()
+                    if 0 <= mid + dr < size and 0 <= col + dc < size
+                )
+                self.grid[mid][col] = CellType.WALL  # re-wall
+
+                if adj_c1 and adj_c2:
+                    door_candidates.append(col)
+
+            if not door_candidates:
+                # No valid door in this row — restore and try next
+                for c in range(size):
+                    self.grid[mid][c] = orig_row[c]
+                continue
+
+            rng.shuffle(door_candidates)
+            door_col = door_candidates[0]
+
+            # Finalize: wall every originally-floor cell except the door
+            for c in range(size):
+                if orig_row[c] == CellType.FLOOR and c != door_col:
+                    # Leave as WALL (already walled above)
+                    self.wall_positions.append((mid, c))
+                else:
+                    # Restore original (WALL stays WALL; door cell becomes FLOOR)
+                    self.grid[mid][c] = orig_row[c]
+            # Door cell is floor, ready to become DOOR in _generate()
+            self.grid[mid][door_col] = CellType.FLOOR
+
+            # Size check
+            if len(c1_set) > len(c2_set):
+                c1_set, c2_set = c2_set, c1_set
+            if len(c1_set) >= 1 and len(c2_set) >= 4:
+                return (mid, door_col), list(c1_set), list(c2_set)
+
+            # Not enough cells on each side — restore and try next row
+            for c in range(size):
+                self.grid[mid][c] = orig_row[c]
+                # Remove any wall_positions we added
+            self.wall_positions = [
+                p for p in self.wall_positions if p[0] != mid
+            ]
+
+        # Absolute fallback (should never reach here on an 8x8 grid)
+        floor_cells = [
             (r, c)
             for r in range(size)
             for c in range(size)
             if self.grid[r][c] == CellType.FLOOR
         ]
-        rng.shuffle(free)
+        rng.shuffle(floor_cells)
+        return floor_cells[0], [floor_cells[1]], floor_cells[2:]
 
-        # Place key, door, exit, and agents on distinct floor cells
-        # Need at least 6 free cells: key, door, exit, 2 agents, + buffer
-        assert len(free) >= 6, "Not enough free cells after wall placement"
-
-        key_pos = free.pop()
-        door_pos = free.pop()
-        exit_pos = free.pop()
-        agent_a_pos = free.pop()
-        agent_b_pos = free.pop()
-
-        # Set door and exit cell types
-        self.grid[door_pos[0]][door_pos[1]] = CellType.DOOR
-        self.grid[exit_pos[0]][exit_pos[1]] = CellType.EXIT
-
-        self.key_position = key_pos
-        self.door_position = door_pos
-        self.exit_position = exit_pos
-
-        # Place the key as an item on the ground
-        self.items["key"] = key_pos
-
-        # Add 2-3 decoy items
-        decoys = ["torch", "old_map", "rusty_compass"]
-        num_decoys = min(rng.randint(2, 3), len(free))
-        for i in range(num_decoys):
-            self.items[decoys[i]] = free.pop()
-
-        # Place agents
-        self.agent_positions = {
-            "agent_a": agent_a_pos,
-            "agent_b": agent_b_pos,
+    def _get_floor_components(self) -> list[set[tuple[int, int]]]:
+        """Return all connected non-wall components as a list of sets."""
+        unvisited = {
+            (r, c)
+            for r in range(self.size)
+            for c in range(self.size)
+            if self.grid[r][c] != CellType.WALL
         }
-        self.agent_inventories = {
-            "agent_a": [],
-            "agent_b": [],
-        }
+        components: list[set[tuple[int, int]]] = []
+
+        while unvisited:
+            start = next(iter(unvisited))
+            comp: set[tuple[int, int]] = set()
+            queue: deque[tuple[int, int]] = deque([start])
+            while queue:
+                pos = queue.popleft()
+                if pos in comp:
+                    continue
+                comp.add(pos)
+                r, c = pos
+                for dr, dc in DIRECTIONS.values():
+                    nr, nc = r + dr, c + dc
+                    if (
+                        0 <= nr < self.size
+                        and 0 <= nc < self.size
+                        and self.grid[nr][nc] != CellType.WALL
+                        and (nr, nc) not in comp
+                    ):
+                        queue.append((nr, nc))
+            components.append(comp)
+            unvisited -= comp
+
+        return components
 
     def _is_connected(self) -> bool:
         """BFS check that all floor/door/exit cells are reachable from each other."""
@@ -488,7 +678,7 @@ class DungeonWorld:
             grid_size=(self.size, self.size),
             seed=self.seed,
             wall_positions=list(self.wall_positions),
-            key_position=self.items.get("key", self.key_position or (0, 0)),
+            key_position=self._initial_key_position,
             door_position=self.door_position,
             exit_position=self.exit_position,
             item_positions=dict(self.items),
