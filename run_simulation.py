@@ -1,7 +1,7 @@
 """CLI entrypoint: run dungeon simulations and save structured logs.
 
 Usage:
-    python run_simulation.py [--seed 42] [--grid-size 8] [--max-turns 50] [--runs 1] [--model claude-sonnet-4-20250514]
+    python run_simulation.py [--seed 42] [--grid-size 8] [--max-turns 50] [--runs 1] [--model claude-sonnet-4-6]
 """
 
 from __future__ import annotations
@@ -12,6 +12,15 @@ import os
 import random
 import sys
 from pathlib import Path
+
+# Load .env before any SDK imports so all credentials are available
+_env_path = Path(__file__).parent / ".env"
+if _env_path.exists():
+    for _line in _env_path.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _, _v = _line.partition("=")
+            os.environ.setdefault(_k.strip(), _v.strip())
 
 import anthropic
 
@@ -71,7 +80,7 @@ def main():
     parser.add_argument("--grid-size", type=int, default=8, help="Grid size (default: 8)")
     parser.add_argument("--max-turns", type=int, default=50, help="Max turns per run (default: 50)")
     parser.add_argument("--runs", type=int, default=1, help="Number of runs (default: 1)")
-    parser.add_argument("--model", type=str, default="claude-sonnet-4-20250514", help="Model to use")
+    parser.add_argument("--model", type=str, default="claude-sonnet-4-6", help="Model to use")
     args = parser.parse_args()
 
     # Ensure output directory exists

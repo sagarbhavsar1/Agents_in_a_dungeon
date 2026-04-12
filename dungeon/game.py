@@ -80,6 +80,11 @@ class GameRunner:
                 # Agent takes a turn
                 tool_call = agent.take_turn(observable, pending, turn)
 
+                # Capture pre-execution snapshot so divergences compare belief
+                # against the state the agent was reasoning FROM, not the state
+                # after the action completed (which would create false my_position divergences)
+                snapshot = self.world.get_snapshot()
+
                 # Execute the tool in the world — logged as a child span in Langfuse
                 with langfuse.start_as_current_observation(
                     name=f"tool:{tool_call.name}",
@@ -111,9 +116,6 @@ class GameRunner:
                     )
                     self._outbox.append(msg)
                     message_sent = msg
-
-                # Get world snapshot for ground truth
-                snapshot = self.world.get_snapshot()
 
                 # Belief comes directly from the agent's mandatory BELIEFS block
                 belief = tool_call.belief
@@ -236,10 +238,11 @@ class GameRunner:
             value=float(stats.belief_divergence_count),
             comment=f"{stats.belief_divergence_count} total belief divergences across {total_turns} turns",
         )
+        turns_with_zero_divs = sum(1 for e in self.events if len(e.divergences) == 0)
         langfuse.score_current_trace(
             name="belief_accuracy_rate",
-            value=max(0.0, 1.0 - stats.belief_divergence_count / total_llm_calls),
-            comment="fraction of agent turns with no belief divergence",
+            value=turns_with_zero_divs / total_llm_calls,
+            comment=f"{turns_with_zero_divs}/{total_llm_calls} turns with zero belief divergences",
         )
         langfuse.score_current_trace(
             name="peak_staleness",
