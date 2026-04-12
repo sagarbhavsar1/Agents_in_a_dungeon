@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 import json
+import os
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
@@ -96,6 +100,10 @@ def get_timeline(run_id: str):
             ],
             "message_sent": event.get("message_sent") is not None,
             "has_messages": len(event.get("pending_messages", [])) > 0,
+            # Decision quality
+            "expected_tool_outcome": event.get("expected_tool_outcome"),
+            "outcome_matched_expectation": event.get("outcome_matched_expectation"),
+            "decision_info_age": event.get("decision_info_age", 0),
         }
 
         # Key milestones
@@ -109,3 +117,46 @@ def get_timeline(run_id: str):
         timeline.append(entry)
 
     return timeline
+
+
+@router.get("/runs/{run_id}/report")
+def get_report(run_id: str):
+    """Post-hoc diagnosis: failure mode, bottlenecks, key insights."""
+    data = _load_run(run_id)
+    return {
+        "manifest": data["manifest"],
+        "diagnosis": data.get("diagnosis"),
+    }
+
+
+@router.get("/runs/{run_id}/langfuse")
+def get_langfuse_trace(run_id: str):
+    """Proxy: fetch live Langfuse trace for this run.
+
+    Reads the trace ID stored in the run manifest, calls the Langfuse REST API
+    server-side (keys never reach the browser), and returns the full trace with
+    all observations and scores.
+    """
+    data = _load_run(run_id)
+    trace_id = data.get("manifest", {}).get("langfuse_trace_id")
+    if not trace_id:
+        raise HTTPException(status_code=404, detail="No Langfuse trace ID stored for this run. Re-run the simulation to capture it.")
+
+    host = os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com").rstrip("/")
+    pub  = os.getenv("LANGFUSE_PUBLIC_KEY", "")
+    sec  = os.getenv("LANGFUSE_SECRET_KEY", "")
+
+    if not pub or not sec:
+        raise HTTPException(status_code=503, detail="LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY not configured in environment.")
+
+    creds = base64.b64encode(f"{pub}:{sec}".encode()).decode()
+    url   = f"{host}/api/public/traces/{trace_id}"
+
+    req = urllib.request.Request(url, headers={"Authorization": f"Basic {creds}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        raise HTTPException(status_code=e.code, detail=f"Langfuse API returned {e.code}: {e.reason}")
+    except urllib.error.URLError as e:
+        raise HTTPException(status_code=502, detail=f"Could not reach Langfuse: {e.reason}")

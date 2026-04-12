@@ -13,10 +13,12 @@ import time
 from dataclasses import dataclass, field
 
 import anthropic
-from langfuse import observe
+from langfuse import get_client, observe
 
 from .schemas import BeliefState, Message, ObservableState
 from .tools import AGENT_TOOLS
+
+langfuse = get_client()
 
 
 @dataclass
@@ -98,7 +100,7 @@ class DungeonAgent:
             "exit_location": None,
         }
 
-    @observe(name="agent_turn")
+    @observe(name="agent_turn", as_type="generation")
     def take_turn(
         self,
         observable_state: ObservableState,
@@ -145,6 +147,29 @@ class DungeonAgent:
 
         # Parse the mandatory BELIEFS block from the reasoning text
         belief, parse_failed = self._parse_belief_block(reasoning)
+
+        # Enrich the Langfuse generation span with structured metadata
+        langfuse.update_current_generation(
+            name=f"{self.agent_id}_turn_{turn_number}",
+            model=self.model,
+            input=user_content,
+            output={"reasoning": reasoning, "tool": tool_name, "tool_input": tool_input},
+            usage_details={
+                "input": response.usage.input_tokens,
+                "output": response.usage.output_tokens,
+            },
+            metadata={
+                "agent_id": self.agent_id,
+                "turn_number": turn_number,
+                "tool_called": tool_name,
+                "belief_extraction_failed": parse_failed,
+                "belief_my_position": str(belief.my_position) if belief.my_position else "unknown",
+                "belief_key_location": belief.key_location or "unknown",
+                "belief_door_status": belief.door_status or "unknown",
+                "latency_ms": latency_ms,
+            },
+            level="WARNING" if parse_failed else "DEFAULT",
+        )
 
         # Append assistant response to conversation history
         self.messages.append({"role": "assistant", "content": response.content})

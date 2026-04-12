@@ -10,9 +10,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from langfuse import observe
+from langfuse import get_client, observe
 
 from .agent import DungeonAgent
+
+langfuse = get_client()
 from .schemas import (
     AgentConfig,
     Message,
@@ -23,7 +25,8 @@ from .schemas import (
     TurnEvent,
     WorldSnapshot,
 )
-from .tracing import compute_divergences
+from .causal import build_causal_chain
+from .tracing import compute_decision_quality, compute_divergences, generate_diagnosis
 from .world import DungeonWorld
 
 
@@ -77,10 +80,21 @@ class GameRunner:
                 # Agent takes a turn
                 tool_call = agent.take_turn(observable, pending, turn)
 
-                # Execute the tool in the world
-                result, success, failure_reason = self.world.execute_tool(
-                    agent_id, tool_call.name, tool_call.input
-                )
+                # Execute the tool in the world — logged as a child span in Langfuse
+                with langfuse.start_as_current_observation(
+                    name=f"tool:{tool_call.name}",
+                    as_type="tool",
+                    input={"tool": tool_call.name, "args": tool_call.input, "agent": agent_id},
+                ) as tool_span:
+                    result, success, failure_reason = self.world.execute_tool(
+                        agent_id, tool_call.name, tool_call.input
+                    )
+                    tool_span.update(
+                        output={"result": result, "success": success},
+                        metadata={"failure_reason": failure_reason, "turn": turn},
+                        level="WARNING" if not success else "DEFAULT",
+                        status_message=failure_reason if failure_reason else None,
+                    )
 
                 # Feed result back to agent's conversation
                 agent.receive_tool_result(tool_call.name, result, success)
@@ -107,6 +121,11 @@ class GameRunner:
                 belief.information_staleness = staleness
                 divergences = compute_divergences(agent_id, belief, snapshot, staleness)
 
+                # Decision quality: was this a reasonable action? was it stale?
+                expected_outcome, outcome_matched, info_age = compute_decision_quality(
+                    agent_id, tool_call.name, tool_call.input, success, snapshot, staleness
+                )
+
                 event = TurnEvent(
                     run_id=self.run_id,
                     turn_number=turn,
@@ -126,6 +145,9 @@ class GameRunner:
                     belief_state=belief,
                     actual_world_state=snapshot,
                     divergences=divergences,
+                    expected_tool_outcome=expected_outcome,
+                    outcome_matched_expectation=outcome_matched,
+                    decision_info_age=info_age,
                     message_sent=message_sent,
                 )
                 self.events.append(event)
@@ -177,7 +199,73 @@ class GameRunner:
             summary_stats=self._compute_stats(),
         )
 
-        return RunLog(manifest=manifest, events=self.events)
+        # Enrich the Langfuse trace with run-level metadata and scores
+        stats = manifest.summary_stats
+        model = next(iter(self.agents.values())).model
+        total_llm_calls = stats.total_llm_calls or 1  # avoid div-by-zero
+
+        langfuse.update_current_span(
+            metadata={
+                "run_id": self.run_id,
+                "seed": self.world.seed,
+                "outcome": outcome.value,
+                "total_turns": total_turns,
+                "grid_size": self.world.size,
+                "model": model,
+                "key_found_turn": stats.key_found_turn,
+                "door_unlocked_turn": stats.door_unlocked_turn,
+                "messages_sent": stats.messages_sent,
+                "belief_divergence_count": stats.belief_divergence_count,
+                "peak_belief_staleness": stats.peak_belief_staleness,
+            },
+            output={
+                "outcome": outcome.value,
+                "total_turns": total_turns,
+                "agents_reached_exit": stats.agents_reached_exit,
+            },
+        )
+
+        # Scores — visible in Langfuse dashboard as filterable numeric metrics
+        langfuse.score_current_trace(
+            name="success",
+            value=1.0 if outcome == RunOutcome.SUCCESS else 0.0,
+            comment=outcome.value,
+        )
+        langfuse.score_current_trace(
+            name="divergence_count",
+            value=float(stats.belief_divergence_count),
+            comment=f"{stats.belief_divergence_count} total belief divergences across {total_turns} turns",
+        )
+        langfuse.score_current_trace(
+            name="belief_accuracy_rate",
+            value=max(0.0, 1.0 - stats.belief_divergence_count / total_llm_calls),
+            comment="fraction of agent turns with no belief divergence",
+        )
+        langfuse.score_current_trace(
+            name="peak_staleness",
+            value=float(stats.peak_belief_staleness),
+            comment="worst information staleness (turns) observed in any belief field",
+        )
+        if stats.messages_sent > 0:
+            langfuse.score_current_trace(
+                name="messages_sent",
+                value=float(stats.messages_sent),
+            )
+
+        # Capture trace identifiers BEFORE flush — context is cleared after
+        try:
+            manifest.langfuse_trace_id = langfuse.get_current_trace_id()
+            manifest.langfuse_trace_url = langfuse.get_trace_url()
+        except Exception:
+            pass
+
+        langfuse.flush()
+
+        # Post-hoc analysis
+        diagnosis = generate_diagnosis(self.events)
+        causal_chain = build_causal_chain(self.events)
+
+        return RunLog(manifest=manifest, events=self.events, diagnosis=diagnosis, causal_chain=causal_chain)
 
     def _deliver_messages(self) -> None:
         """Move outbox messages to recipients' inboxes."""
@@ -213,11 +301,26 @@ class GameRunner:
             if event.tool_name == "send_message" and event.tool_success:
                 stats.messages_sent += 1
 
+            # Count messages received (delivered to agent this turn)
+            stats.messages_received += len(event.pending_messages)
+
             # Divergence stats
             stats.belief_divergence_count += len(event.divergences)
             for div in event.divergences:
                 if div.staleness_turns > stats.peak_belief_staleness:
                     stats.peak_belief_staleness = div.staleness_turns
+
+            # Stale decision failures: acted on old info and outcome was unexpected
+            if event.decision_info_age > 2 and event.outcome_matched_expectation is False:
+                stats.stale_decision_failures += 1
+
+            # Coordination failures: expected success but tool failed (not stale-info related)
+            if (
+                event.outcome_matched_expectation is False
+                and event.expected_tool_outcome == "success"
+                and event.decision_info_age <= 2
+            ):
+                stats.coordination_failures += 1
 
         stats.tool_call_counts = tool_counts
         stats.total_tokens_used = total_tokens
