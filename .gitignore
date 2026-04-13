@@ -15,5 +15,8 @@ build/
 runs/*.json
 !runs/.gitkeep
 
+# TTS audio cache — regenerated on demand from text
+runs/tts_cache/
+
 # macOS
 .DS_Store
