@@ -280,6 +280,28 @@ class CausalChain(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Recommendations (what should change next)
+# ---------------------------------------------------------------------------
+
+class Recommendation(BaseModel):
+    """One concrete, evidence-backed change recommendation.
+
+    priority: critical = root cause of failure | high = major contributor | medium = improvement
+    category: what kind of change is needed
+    finding: what the data showed, with specific turn numbers
+    recommendation: the concrete change to make
+    expected_impact: what metric/behavior improves
+    evidence_turns: turn numbers to jump to in the replay
+    """
+    priority: str  # "critical" | "high" | "medium"
+    category: str  # "coordination" | "prompt" | "architecture" | "exploration"
+    finding: str
+    recommendation: str
+    expected_impact: str
+    evidence_turns: list[int] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
 # Full run log (what gets serialized to runs/{run_id}.json)
 # ---------------------------------------------------------------------------
 
@@ -288,3 +310,4 @@ class RunLog(BaseModel):
     events: list[TurnEvent] = Field(default_factory=list)
     diagnosis: RunDiagnosis | None = None
     causal_chain: CausalChain | None = None
+    recommendations: list[Recommendation] = Field(default_factory=list)
