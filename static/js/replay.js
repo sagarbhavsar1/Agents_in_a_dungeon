@@ -74,6 +74,9 @@ const Replay = {
         // Render causal chain
         this.renderCausalChain(this.runData.causal_chain);
 
+        // Render recommendations
+        this.renderRecommendations(this.runData.recommendations);
+
         // Init Langfuse trace tab (loads lazily when tab is clicked)
         LangfuseTrace.init(runId, this.manifest);
 
@@ -165,6 +168,55 @@ const Replay = {
                         ${w.stale_end_turn ? `<span style="left:${pct(staleEnd)}%" class="cw-lbl-resolved">T${w.stale_end_turn}</span>` : ''}
                         <span style="left:100%" class="cw-lbl-end">T${total}</span>
                     </div>
+                </div>
+            </div>`;
+        }).join('');
+    },
+
+    renderRecommendations(recs) {
+        if (!recs || recs.length === 0) return;
+        const panel = document.getElementById('rec-panel');
+        panel.style.display = 'block';
+
+        const critCount = recs.filter(r => r.priority === 'critical').length;
+        const highCount = recs.filter(r => r.priority === 'high').length;
+        const parts = [];
+        if (critCount) parts.push(`${critCount} critical`);
+        if (highCount) parts.push(`${highCount} high`);
+        const rest = recs.length - critCount - highCount;
+        if (rest) parts.push(`${rest} medium`);
+        document.getElementById('rec-summary').textContent = parts.join(' · ');
+
+        const CATEGORY_LABELS = {
+            coordination: 'COORDINATION',
+            prompt: 'PROMPT',
+            architecture: 'ARCHITECTURE',
+            exploration: 'EXPLORATION',
+        };
+
+        document.getElementById('rec-list').innerHTML = recs.map((r) => {
+            const catLabel = CATEGORY_LABELS[r.category] || r.category.toUpperCase();
+            const jumpLinks = r.evidence_turns.length
+                ? r.evidence_turns.map(t =>
+                    `<button class="rec-jump" onclick="Replay.goToTurn(${t})">T${t}</button>`
+                  ).join('')
+                : '';
+
+            return `
+            <div class="rec-card rec-${r.priority}">
+                <div class="rec-card-head">
+                    <span class="rec-priority rec-priority-${r.priority}">${r.priority.toUpperCase()}</span>
+                    <span class="rec-category">${catLabel}</span>
+                    ${jumpLinks ? `<span class="rec-evidence">evidence: ${jumpLinks}</span>` : ''}
+                </div>
+                <div class="rec-finding">${this.escapeHtml(r.finding)}</div>
+                <div class="rec-change">
+                    <span class="rec-change-label">&#8594; Change:</span>
+                    ${this.escapeHtml(r.recommendation)}
+                </div>
+                <div class="rec-impact">
+                    <span class="rec-impact-label">Impact:</span>
+                    ${this.escapeHtml(r.expected_impact)}
                 </div>
             </div>`;
         }).join('');

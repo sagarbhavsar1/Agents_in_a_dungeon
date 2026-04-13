@@ -20,6 +20,11 @@ from .tools import AGENT_TOOLS
 
 langfuse = get_client()
 
+# Max turns of conversation history sent to the API each call.
+# Each turn contributes up to 3 messages (user prompt, assistant tool_use,
+# tool_result), so the upper bound is ~MAX_HISTORY_TURNS * 3 messages.
+MAX_HISTORY_TURNS = 10
+
 
 @dataclass
 class ToolCall:
@@ -122,10 +127,14 @@ class DungeonAgent:
         user_content = self._build_turn_message(observable_state, pending_messages, turn_number)
         self.messages.append({"role": "user", "content": user_content})
 
-        # Trim conversation history to last MAX_HISTORY_TURNS turns to prevent
-        # unbounded context growth (3 messages per turn: user, assistant, tool_result)
-        MAX_HISTORY_TURNS = 10
-        trimmed = self.messages[-(MAX_HISTORY_TURNS * 3):] if len(self.messages) > MAX_HISTORY_TURNS * 3 else self.messages
+        # Trim conversation history to the last ~MAX_HISTORY_TURNS turns.
+        # A blind slice is unsafe: each turn appends 3 messages
+        # (user prompt → assistant tool_use → user tool_result), and cutting
+        # mid-turn leaves an orphan tool_result at the head of the window,
+        # which the API rejects ("tool_use ids were found without tool_result").
+        # _trim_history advances past any leading tool_result continuation
+        # until the window starts on a fresh turn boundary.
+        trimmed = self._trim_history()
 
         # Call Claude
         start = time.monotonic()
@@ -135,6 +144,14 @@ class DungeonAgent:
             system=self.system_prompt,
             tools=AGENT_TOOLS,
             messages=trimmed,
+            # One action per turn. Parallel tool calls would leave us with
+            # multiple tool_use blocks in a single assistant message but only
+            # one tool_result appended (our loop picks a single action to
+            # execute against the world), orphaning the others and triggering
+            # "tool_use ids were found without tool_result blocks" on the
+            # NEXT API call. The game loop is strictly turn-based — one tool
+            # per agent per turn — so this matches our semantics exactly.
+            tool_choice={"type": "auto", "disable_parallel_tool_use": True},
         )
         latency_ms = int((time.monotonic() - start) * 1000)
 
@@ -213,6 +230,55 @@ class DungeonAgent:
                     }
                 ],
             })
+
+    def _trim_history(self) -> list[dict]:
+        """Return a safe window of recent history for the next API call.
+
+        Targets the last ~MAX_HISTORY_TURNS turns but guarantees the window
+        begins on a fresh turn boundary — i.e. a user message whose content
+        is a plain string (turn prompt), not a tool_result continuation.
+
+        Why: each turn appends user(prompt) → assistant(tool_use) → user(tool_result).
+        A naive tail slice can start on a tool_result whose matching tool_use
+        has been dropped. Anthropic's API rejects that with:
+            "tool_use ids were found without tool_result blocks immediately after".
+
+        Walking the start index forward until we land on a string-content user
+        message is O(1) amortized (we skip at most 2 messages) and is robust to
+        turns that didn't produce a tool_use (2-message turns) as well.
+        """
+        target = MAX_HISTORY_TURNS * 3
+        if len(self.messages) <= target:
+            return self.messages
+
+        start = len(self.messages) - target
+
+        # Advance past any leading orphan tool_result / assistant message until
+        # we hit a fresh user-prompt message.
+        while start < len(self.messages):
+            msg = self.messages[start]
+            if msg["role"] != "user":
+                # Assistant message at the head is also invalid as a window
+                # start (the API expects conversations to begin with user).
+                start += 1
+                continue
+            content = msg["content"]
+            if isinstance(content, str):
+                # Plain-text user message = fresh turn prompt. Safe boundary.
+                break
+            if (
+                isinstance(content, list)
+                and content
+                and isinstance(content[0], dict)
+                and content[0].get("type") == "tool_result"
+            ):
+                # Orphan tool_result continuation — skip.
+                start += 1
+                continue
+            # Any other user-message shape: treat as a safe boundary.
+            break
+
+        return self.messages[start:]
 
     def _parse_belief_block(self, text: str) -> tuple[BeliefState, bool]:
         """Parse the mandatory BELIEFS JSON block from the agent's response text.

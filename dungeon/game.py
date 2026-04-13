@@ -26,6 +26,7 @@ from .schemas import (
     WorldSnapshot,
 )
 from .causal import build_causal_chain
+from .recommendations import generate_recommendations
 from .tracing import compute_decision_quality, compute_divergences, generate_diagnosis
 from .world import DungeonWorld
 
@@ -267,8 +268,15 @@ class GameRunner:
         # Post-hoc analysis
         diagnosis = generate_diagnosis(self.events)
         causal_chain = build_causal_chain(self.events)
+        recommendations = generate_recommendations(self.events, diagnosis, causal_chain)
 
-        return RunLog(manifest=manifest, events=self.events, diagnosis=diagnosis, causal_chain=causal_chain)
+        return RunLog(
+            manifest=manifest,
+            events=self.events,
+            diagnosis=diagnosis,
+            causal_chain=causal_chain,
+            recommendations=recommendations,
+        )
 
     def _deliver_messages(self) -> None:
         """Move outbox messages to recipients' inboxes."""
