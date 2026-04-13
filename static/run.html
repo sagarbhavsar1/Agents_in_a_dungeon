@@ -21,80 +21,146 @@
         <button class="tab-btn" data-tab="langfuse">&#11835; LANGFUSE TRACE</button>
     </nav>
 
-    <main class="run-detail">
-        <!-- Left: Grid -->
-        <section class="panel grid-panel">
-            <canvas id="grid-canvas" width="400" height="400"></canvas>
-            <div id="grid-legend" class="legend">
-                <span class="legend-item"><span class="swatch wall"></span>Wall</span>
-                <span class="legend-item"><span class="swatch floor"></span>Floor</span>
-                <span class="legend-item"><span class="swatch door-locked"></span>Door &#x1F512;</span>
-                <span class="legend-item"><span class="swatch door-unlocked"></span>Door &#x1F513;</span>
-                <span class="legend-item"><span class="swatch exit"></span>Exit</span>
-                <span class="legend-item"><span class="swatch key-item"></span>Key</span>
-                <span class="legend-item"><span class="swatch agent-a"></span>Agent A</span>
-                <span class="legend-item"><span class="swatch agent-b"></span>Agent B</span>
+    <!-- ============================================================
+         SECTION 1 — WHAT HAPPENED
+         World replay on the left, live agent chat on the right
+         ============================================================ -->
+    <section class="q-section q-happened">
+        <div class="q-heading">
+            <span class="q-num">1</span>
+            <div class="q-title-wrap">
+                <h2>WHAT HAPPENED</h2>
+                <span class="q-sub">Turn-by-turn replay with live agent chat &amp; TTS</span>
             </div>
-        </section>
+        </div>
 
-        <!-- Right: Agent panels -->
-        <section class="panel agents-panel">
-            <div id="agent-a-panel" class="agent-card">
-                <div class="agent-card-header">
-                    <h3 class="agent-a-color">&#9670; AGENT A</h3>
+        <div class="replay-layout">
+            <!-- LEFT: world + transport + agent status -->
+            <div class="replay-left">
+                <div class="world-frame">
+                    <canvas id="grid-canvas" width="440" height="440"></canvas>
                 </div>
-                <div class="agent-card-body agent-body"></div>
-            </div>
-            <div id="agent-b-panel" class="agent-card">
-                <div class="agent-card-header">
-                    <h3 class="agent-b-color">&#9670; AGENT B</h3>
+
+                <div class="transport-bar">
+                    <div class="transport">
+                        <button id="btn-first" title="First turn (Home)">&laquo;</button>
+                        <button id="btn-prev" title="Previous (Left arrow)">&lsaquo;</button>
+                        <button id="btn-play" title="Play/Pause (Space)">&#9654;</button>
+                        <button id="btn-next" title="Next (Right arrow)">&rsaquo;</button>
+                        <button id="btn-last" title="Last turn (End)">&raquo;</button>
+                    </div>
+                    <span id="turn-display" class="turn-display">Turn 0 / 0</span>
                 </div>
-                <div class="agent-card-body agent-body"></div>
+
+                <canvas id="timeline-canvas" height="60"></canvas>
+
+                <div class="grid-legend-strip">
+                    <span class="legend-item"><span class="swatch wall"></span>Wall</span>
+                    <span class="legend-item"><span class="swatch door-locked"></span>Locked</span>
+                    <span class="legend-item"><span class="swatch door-unlocked"></span>Unlocked</span>
+                    <span class="legend-item"><span class="swatch exit"></span>Exit</span>
+                    <span class="legend-item"><span class="swatch key-item"></span>Key</span>
+                    <span class="legend-item"><span class="swatch agent-a"></span>Agent A</span>
+                    <span class="legend-item"><span class="swatch agent-b"></span>Agent B</span>
+                </div>
+
+                <div class="agents-stack">
+                    <div id="agent-a-panel" class="agent-card agent-card-compact">
+                        <div class="agent-card-header">
+                            <h3 class="agent-a-color">&#9670; AGENT A</h3>
+                        </div>
+                        <div class="agent-card-body agent-body"></div>
+                    </div>
+                    <div id="agent-b-panel" class="agent-card agent-card-compact">
+                        <div class="agent-card-header">
+                            <h3 class="agent-b-color">&#9670; AGENT B</h3>
+                        </div>
+                        <div class="agent-card-body agent-body"></div>
+                    </div>
+                </div>
             </div>
+
+            <!-- RIGHT: WhatsApp-style chat with TTS -->
+            <div class="replay-right">
+                <div class="chat-frame">
+                    <div class="chat-frame-header">
+                        <div class="chat-frame-title">
+                            <span class="chat-icon">&#128172;</span>
+                            <span>AGENT CHAT</span>
+                        </div>
+                        <span id="chat-count" class="chat-count"></span>
+                    </div>
+
+                    <div id="chat-log" class="chat-log"></div>
+
+                    <div class="chat-frame-footer">
+                        <label class="chat-toggle" title="Auto-play new messages as the replay steps forward">
+                            <input type="checkbox" id="chat-autoplay">
+                            <span>AUTO-PLAY</span>
+                        </label>
+                        <button id="chat-play-all" class="chat-play-all" title="Play every message up to the current turn in order">&#9654; PLAY ALL TO HERE</button>
+                        <button id="chat-stop" class="chat-stop" title="Stop playback">&#9632;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         SECTION 2 — WHY DID IT HAPPEN
+         Diagnosis + causal chain
+         ============================================================ -->
+    <section class="q-section q-why">
+        <div class="q-heading">
+            <span class="q-num">2</span>
+            <div class="q-title-wrap">
+                <h2>WHY IT HAPPENED</h2>
+                <span class="q-sub">Failure mode diagnosis &amp; belief staleness windows</span>
+            </div>
+        </div>
+
+        <div class="why-layout">
+            <!-- Diagnosis panel -->
+            <section class="diagnosis-section" id="diagnosis-panel" style="display:none">
+                <div class="diagnosis-header">
+                    <span class="diagnosis-label">DIAGNOSIS</span>
+                    <span id="diagnosis-mode" class="diagnosis-mode-badge"></span>
+                </div>
+                <div class="diagnosis-body">
+                    <div class="diagnosis-stats" id="diagnosis-stats"></div>
+                    <ul class="diagnosis-insights" id="diagnosis-insights"></ul>
+                </div>
+            </section>
+
+            <!-- Causal Chain -->
+            <section class="causal-section" id="causal-panel" style="display:none">
+                <div class="causal-header">
+                    <span class="causal-label">CAUSAL CHAIN</span>
+                    <span id="causal-summary" class="causal-summary"></span>
+                </div>
+                <div id="causal-windows"></div>
+            </section>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         SECTION 3 — WHAT SHOULD CHANGE NEXT
+         ============================================================ -->
+    <section class="q-section q-change">
+        <div class="q-heading">
+            <span class="q-num">3</span>
+            <div class="q-title-wrap">
+                <h2>WHAT TO CHANGE NEXT</h2>
+                <span class="q-sub">Evidence-backed, priority-sorted recommendations</span>
+            </div>
+        </div>
+
+        <section class="rec-section" id="rec-panel" style="display:none">
+            <div class="rec-header">
+                <span id="rec-summary" class="rec-summary"></span>
+            </div>
+            <div id="rec-list"></div>
         </section>
-    </main>
-
-    <!-- Diagnosis panel -->
-    <section class="diagnosis-section" id="diagnosis-panel" style="display:none">
-        <div class="diagnosis-header">
-            <span class="diagnosis-label">RUN DIAGNOSIS</span>
-            <span id="diagnosis-mode" class="diagnosis-mode-badge"></span>
-        </div>
-        <div class="diagnosis-body">
-            <div class="diagnosis-stats" id="diagnosis-stats"></div>
-            <ul class="diagnosis-insights" id="diagnosis-insights"></ul>
-        </div>
-    </section>
-
-    <!-- Causal Chain -->
-    <section class="causal-section" id="causal-panel" style="display:none">
-        <div class="causal-header">
-            <span class="causal-label">WHY IT HAPPENED</span>
-            <span id="causal-summary" class="causal-summary"></span>
-        </div>
-        <div id="causal-windows"></div>
-    </section>
-
-    <!-- Recommendations: What should change next -->
-    <section class="rec-section" id="rec-panel" style="display:none">
-        <div class="rec-header">
-            <span class="rec-label">WHAT TO CHANGE</span>
-            <span id="rec-summary" class="rec-summary"></span>
-        </div>
-        <div id="rec-list"></div>
-    </section>
-
-    <!-- Timeline -->
-    <section class="timeline-section">
-        <div class="transport">
-            <button id="btn-first" title="First turn">&laquo;</button>
-            <button id="btn-prev" title="Previous (Left arrow)">&lsaquo;</button>
-            <button id="btn-play" title="Play/Pause (Space)">&#9654;</button>
-            <button id="btn-next" title="Next (Right arrow)">&rsaquo;</button>
-            <button id="btn-last" title="Last turn">&raquo;</button>
-            <span id="turn-display">Turn 0 / 0</span>
-        </div>
-        <canvas id="timeline-canvas" height="80"></canvas>
     </section>
 
     <!-- Langfuse trace tab (hidden until selected) -->

@@ -10,6 +10,13 @@ const Replay = {
     pathHistory: { agent_a: [], agent_b: [] },
     playInterval: null,
 
+    // Chat / TTS state
+    messages: [],            // all send_message events sorted by sent_turn
+    _audioCache: {},         // msg_id -> object URL (browser-side cache)
+    _currentAudio: null,     // currently playing HTMLAudioElement
+    _ttsAbort: null,         // abort controller for chained "play to here"
+    _lastPlayedTurn: 0,      // highest turn whose messages we've auto-played
+
     async init() {
         const params = new URLSearchParams(window.location.search);
         const runId = params.get('id');
@@ -73,6 +80,10 @@ const Replay = {
 
         // Render causal chain
         this.renderCausalChain(this.runData.causal_chain);
+
+        // Collect and render chat log (with TTS playback)
+        this.messages = this.collectMessages();
+        this.renderChatLog();
 
         // Render recommendations
         this.renderRecommendations(this.runData.recommendations);
@@ -263,6 +274,12 @@ const Replay = {
 
         // Update turn display
         document.getElementById('turn-display').textContent = `Turn ${turn} / ${this.totalTurns}`;
+
+        // Sync chat bubble highlighting to the current turn
+        this.syncChatHighlight(turn);
+
+        // Auto-play any new messages that appeared on this turn
+        this.maybeAutoPlay(turn);
     },
 
     renderAgentPanel(agentId, event) {
@@ -408,6 +425,227 @@ const Replay = {
     escapeHtml(str) {
         if (!str) return '';
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    },
+
+    // ------------------------------------------------------------------
+    // Chat log + TTS playback
+    // ------------------------------------------------------------------
+
+    collectMessages() {
+        const msgs = [];
+        for (const evt of this.events) {
+            if (evt.message_sent) {
+                msgs.push({
+                    id: `m${msgs.length}`,
+                    from: evt.message_sent.from_agent,
+                    to: evt.message_sent.to_agent,
+                    content: evt.message_sent.content,
+                    sent_turn: evt.message_sent.sent_turn,
+                    delivered_turn: evt.message_sent.delivered_turn,
+                });
+            }
+        }
+        msgs.sort((a, b) => a.sent_turn - b.sent_turn);
+        return msgs;
+    },
+
+    renderChatLog() {
+        const container = document.getElementById('chat-log');
+        if (!container) return;
+
+        if (this.messages.length === 0) {
+            container.innerHTML = '<p class="chat-empty">— No messages sent this run —</p>';
+            const cc = document.getElementById('chat-count');
+            if (cc) cc.textContent = '0 messages';
+            return;
+        }
+
+        const cc = document.getElementById('chat-count');
+        if (cc) cc.textContent = `${this.messages.length} messages`;
+
+        container.innerHTML = this.messages.map((m) => {
+            const agentClass = m.from === 'agent_a' ? 'chat-agent-a' : 'chat-agent-b';
+            const fromLabel = m.from === 'agent_a' ? 'AGENT A' : 'AGENT B';
+            return `
+            <div class="chat-msg ${agentClass}" data-msg-id="${m.id}" data-sent-turn="${m.sent_turn}">
+                <div class="chat-bubble">${this.escapeHtml(m.content)}</div>
+                <div class="chat-meta">
+                    <button class="chat-play" data-msg-id="${m.id}" title="Play this message">&#9654;</button>
+                    <span class="chat-sender">${fromLabel}</span>
+                    <span class="chat-turn" title="Sent turn → delivered turn">T${m.sent_turn} &rarr; T${m.delivered_turn}</span>
+                    <button class="chat-jump" data-turn="${m.sent_turn}" title="Jump replay to this turn">&#8594;</button>
+                </div>
+            </div>`;
+        }).join('');
+
+        // Wire up per-bubble buttons (avoids inline onclick escaping hazards)
+        container.querySelectorAll('.chat-play').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.playMessage(btn.dataset.msgId);
+            });
+        });
+        container.querySelectorAll('.chat-jump').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.goToTurn(parseInt(btn.dataset.turn, 10));
+            });
+        });
+
+        // Toolbar buttons
+        document.getElementById('chat-play-all').addEventListener('click', () => {
+            this.playAllUpToCurrent();
+        });
+        document.getElementById('chat-stop').addEventListener('click', () => {
+            this.stopPlayback();
+        });
+    },
+
+    syncChatHighlight(turn) {
+        const bubbles = document.querySelectorAll('.chat-msg');
+        let activeEl = null;
+        bubbles.forEach((el) => {
+            const sent = parseInt(el.dataset.sentTurn, 10);
+            el.classList.remove('chat-msg-active', 'chat-msg-past', 'chat-msg-future');
+            if (sent === turn) {
+                el.classList.add('chat-msg-active');
+                activeEl = el;
+            } else if (sent < turn) {
+                el.classList.add('chat-msg-past');
+            } else {
+                el.classList.add('chat-msg-future');
+            }
+        });
+        if (activeEl) {
+            activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    },
+
+    maybeAutoPlay(turn) {
+        const autoplay = document.getElementById('chat-autoplay');
+        if (!autoplay || !autoplay.checked) {
+            // Reset marker so toggling it on later starts fresh from current turn
+            this._lastPlayedTurn = turn;
+            return;
+        }
+        // Only advance forward — don't replay when user scrubs backwards
+        if (turn <= this._lastPlayedTurn) return;
+
+        const newMessages = this.messages.filter(
+            (m) => m.sent_turn > this._lastPlayedTurn && m.sent_turn <= turn,
+        );
+        this._lastPlayedTurn = turn;
+
+        if (newMessages.length === 0) return;
+        // Fire and forget — sequential playback
+        this._playQueue(newMessages);
+    },
+
+    async playAllUpToCurrent() {
+        const upTo = this.messages.filter((m) => m.sent_turn <= this.currentTurn);
+        if (upTo.length === 0) return;
+        await this._playQueue(upTo);
+    },
+
+    async _playQueue(msgs) {
+        // Cancel any existing playback chain
+        this.stopPlayback();
+        const token = Symbol('playback');
+        this._ttsAbort = token;
+
+        for (const m of msgs) {
+            if (this._ttsAbort !== token) return; // cancelled
+            await this.playMessage(m.id, { jumpTo: true });
+        }
+        if (this._ttsAbort === token) this._ttsAbort = null;
+    },
+
+    stopPlayback() {
+        this._ttsAbort = null;
+        if (this._currentAudio) {
+            this._currentAudio.pause();
+            this._currentAudio.currentTime = 0;
+            this._currentAudio = null;
+        }
+        // Reset any play buttons still showing "loading" / "playing"
+        document.querySelectorAll('.chat-play').forEach((btn) => {
+            btn.innerHTML = '&#9654;';
+            btn.classList.remove('chat-play-loading', 'chat-play-active');
+        });
+    },
+
+    playMessage(msgId, { jumpTo = false } = {}) {
+        return new Promise(async (resolve) => {
+            const msg = this.messages.find((m) => m.id === msgId);
+            if (!msg) return resolve();
+
+            // Stop any currently-playing audio (one voice at a time)
+            if (this._currentAudio) {
+                this._currentAudio.pause();
+                this._currentAudio = null;
+            }
+
+            const bubble = document.querySelector(`[data-msg-id="${msgId}"]`);
+            const btn = bubble ? bubble.querySelector('.chat-play') : null;
+            const setBtn = (icon, cls) => {
+                if (!btn) return;
+                btn.innerHTML = icon;
+                btn.classList.remove('chat-play-loading', 'chat-play-active', 'chat-play-error');
+                if (cls) btn.classList.add(cls);
+            };
+
+            if (jumpTo) this.goToTurn(msg.sent_turn);
+
+            // Check browser-side cache first — avoids a network round trip
+            // on every replay of the same message.
+            let url = this._audioCache[msgId];
+            if (!url) {
+                setBtn('&#8943;', 'chat-play-loading'); // ⋯
+                try {
+                    const resp = await fetch('/api/tts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: msg.content,
+                            agent_id: msg.from,
+                        }),
+                    });
+                    if (!resp.ok) {
+                        const errText = await resp.text();
+                        console.error('TTS request failed:', resp.status, errText);
+                        setBtn('&#10007;', 'chat-play-error'); // ✗
+                        return resolve();
+                    }
+                    const blob = await resp.blob();
+                    url = URL.createObjectURL(blob);
+                    this._audioCache[msgId] = url;
+                } catch (err) {
+                    console.error('TTS network error:', err);
+                    setBtn('&#10007;', 'chat-play-error');
+                    return resolve();
+                }
+            }
+
+            const audio = new Audio(url);
+            this._currentAudio = audio;
+            setBtn('&#9646;&#9646;', 'chat-play-active'); // ‖‖
+
+            audio.onended = () => {
+                setBtn('&#9654;');
+                if (this._currentAudio === audio) this._currentAudio = null;
+                resolve();
+            };
+            audio.onerror = () => {
+                setBtn('&#10007;', 'chat-play-error');
+                if (this._currentAudio === audio) this._currentAudio = null;
+                resolve();
+            };
+            audio.play().catch((err) => {
+                console.error('Audio play() rejected:', err);
+                setBtn('&#10007;', 'chat-play-error');
+                resolve();
+            });
+        });
     },
 
     prevTurn() {

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import urllib.error
@@ -10,10 +11,27 @@ import urllib.request
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api")
 
 RUNS_DIR = Path(__file__).parent.parent / "runs"
+
+# TTS cache: generated wav files are small and identical text produces
+# identical audio, so cache on disk. Keyed by sha256(voice::text).
+TTS_CACHE_DIR = RUNS_DIR / "tts_cache"
+TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Per-agent voice assignment. Chosen to be clearly distinguishable on
+# playback so a listener can tell who's speaking without reading labels.
+# canopylabs/orpheus-v1-english voices: austin, hannah, troy, etc.
+AGENT_VOICES = {
+    "agent_a": "austin",
+    "agent_b": "hannah",
+}
+DEFAULT_VOICE = "austin"
+TTS_MODEL = "canopylabs/orpheus-v1-english"
 
 
 def _load_run(run_id: str) -> dict:
@@ -160,3 +178,85 @@ def get_langfuse_trace(run_id: str):
         raise HTTPException(status_code=e.code, detail=f"Langfuse API returned {e.code}: {e.reason}")
     except urllib.error.URLError as e:
         raise HTTPException(status_code=502, detail=f"Could not reach Langfuse: {e.reason}")
+
+
+# ---------------------------------------------------------------------------
+# Text-to-speech (Groq + canopylabs/orpheus-v1-english)
+# ---------------------------------------------------------------------------
+
+class TTSRequest(BaseModel):
+    text: str
+    agent_id: str | None = None   # used to pick a default voice
+    voice: str | None = None      # explicit voice override
+
+
+@router.post("/tts")
+def tts(req: TTSRequest):
+    """Generate speech from text via Groq's Orpheus TTS.
+
+    Why a server-side proxy: the Groq API key never reaches the browser,
+    identical text/voice pairs reuse cached audio (cheap + instant on replay),
+    and the browser can just play the returned wav file directly.
+    """
+    text = (req.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text is required")
+
+    voice = req.voice or AGENT_VOICES.get(req.agent_id or "", DEFAULT_VOICE)
+
+    # Cache key: identical (voice, text) → identical audio, reuse forever
+    key = hashlib.sha256(f"{voice}::{text}".encode()).hexdigest()[:16]
+    cache_file = TTS_CACHE_DIR / f"{key}.wav"
+
+    if not cache_file.exists():
+        api_key = os.getenv("GROQ_API_KEY", "")
+        if not api_key:
+            raise HTTPException(
+                status_code=503,
+                detail="GROQ_API_KEY not configured in environment.",
+            )
+
+        payload = json.dumps({
+            "model": TTS_MODEL,
+            "voice": voice,
+            "input": text,
+            "response_format": "wav",
+        }).encode()
+
+        groq_req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/audio/speech",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                # Groq is fronted by Cloudflare which 403s (error 1010) on
+                # urllib's default "Python-urllib/3.x" signature. A generic
+                # UA unblocks it.
+                "User-Agent": "dungeon-agents/0.1 (+https://anthropic.com)",
+                "Accept": "audio/wav, application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(groq_req, timeout=30) as resp:
+                audio_bytes = resp.read()
+        except urllib.error.HTTPError as e:
+            body = ""
+            try:
+                body = e.read().decode("utf-8", errors="ignore")
+            except Exception:
+                pass
+            raise HTTPException(
+                status_code=e.code,
+                detail=f"Groq TTS returned {e.code}: {e.reason}. {body[:200]}",
+            )
+        except urllib.error.URLError as e:
+            raise HTTPException(status_code=502, detail=f"Could not reach Groq: {e.reason}")
+
+        cache_file.write_bytes(audio_bytes)
+
+    return FileResponse(
+        cache_file,
+        media_type="audio/wav",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )

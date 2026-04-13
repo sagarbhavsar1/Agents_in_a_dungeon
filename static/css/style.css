@@ -1191,3 +1191,428 @@ main {
     color: var(--info);
     margin-right: 4px;
 }
+
+/* ============================================================
+   Q-SECTIONS — the three spec questions (what / why / change)
+   ============================================================ */
+
+.q-section {
+    margin: 22px 24px;
+    padding: 0;
+}
+
+.q-heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 2px solid var(--border-bright);
+    box-shadow: 0 0 0 2px var(--bg) inset, 0 3px 0 0 var(--text);
+}
+
+.q-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: var(--border-bright);
+    color: var(--bg);
+    font-family: var(--pokemon-font);
+    font-size: 14px;
+    border: 2px solid var(--text);
+    flex-shrink: 0;
+}
+
+.q-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.q-title-wrap h2 {
+    font-family: var(--pokemon-font);
+    font-size: 12px;
+    color: var(--text);
+    letter-spacing: 1.5px;
+    margin: 0;
+}
+
+.q-sub {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.3px;
+}
+
+/* ============================================================
+   SECTION 1 — replay + chat layout
+   ============================================================ */
+
+.replay-layout {
+    display: grid;
+    grid-template-columns: minmax(460px, 520px) 1fr;
+    gap: 18px;
+    align-items: start;
+}
+
+.replay-left {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    box-shadow: 0 0 0 2px var(--bg) inset;
+    padding: 14px 14px 16px;
+}
+
+.world-frame {
+    display: flex;
+    justify-content: center;
+    padding: 6px 0 2px;
+}
+
+.transport-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border: 2px solid var(--border);
+}
+
+.transport-bar .transport {
+    margin: 0;
+}
+
+.turn-display {
+    font-family: var(--pokemon-font);
+    font-size: 8px;
+    color: var(--border-bright);
+    letter-spacing: 1px;
+}
+
+#timeline-canvas {
+    width: 100%;
+    border: 2px solid var(--border);
+    background: var(--bg);
+}
+
+.grid-legend-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-family: var(--pokemon-font);
+    font-size: 6px;
+    color: var(--text-muted);
+    padding: 6px 4px;
+    border-top: 1px dashed var(--border);
+}
+
+.grid-legend-strip .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.agents-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.agent-card-compact {
+    margin-bottom: 0;
+    box-shadow: 0 0 0 1px var(--border-bright);
+    border-width: 2px;
+}
+
+.agent-card-compact .agent-card-header {
+    padding: 6px 10px;
+}
+
+.agent-card-compact .agent-card-body {
+    padding: 8px 10px;
+    max-height: 220px;
+    overflow-y: auto;
+    font-size: 10px;
+}
+
+/* ============================================================
+   WhatsApp-style chat frame
+   ============================================================ */
+
+.replay-right {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.chat-frame {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    box-shadow: 0 0 0 2px var(--bg) inset, 0 0 0 3px var(--border-bright);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 220px);
+    min-height: 520px;
+    max-height: 820px;
+}
+
+.chat-frame-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-bottom: 2px solid var(--border-bright);
+    flex-shrink: 0;
+}
+
+.chat-frame-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--pokemon-font);
+    font-size: 9px;
+    color: var(--text);
+    letter-spacing: 1.5px;
+}
+
+.chat-icon {
+    font-size: 16px;
+    filter: drop-shadow(0 0 3px rgba(200, 135, 44, 0.6));
+}
+
+.chat-count {
+    margin-left: auto;
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.chat-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background:
+        radial-gradient(ellipse at 30% 0%, rgba(200, 135, 44, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 100%, rgba(56, 136, 248, 0.04) 0%, transparent 55%),
+        var(--bg);
+}
+
+.chat-log::-webkit-scrollbar      { width: 10px; }
+.chat-log::-webkit-scrollbar-track { background: var(--bg); }
+.chat-log::-webkit-scrollbar-thumb { background: var(--border); border: 2px solid var(--bg); }
+
+.chat-empty {
+    color: var(--text-muted);
+    text-align: center;
+    padding: 40px 20px;
+    font-style: italic;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+/* Chat bubble — one row per message, anchored left or right */
+.chat-msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 78%;
+    opacity: 0.45;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.chat-msg.chat-agent-a { align-self: flex-start; align-items: flex-start; }
+.chat-msg.chat-agent-b { align-self: flex-end;   align-items: flex-end;   }
+
+.chat-msg.chat-msg-past   { opacity: 0.8; }
+.chat-msg.chat-msg-future { opacity: 0.3; }
+.chat-msg.chat-msg-active { opacity: 1;   transform: scale(1.015); }
+
+.chat-bubble {
+    position: relative;
+    padding: 10px 14px;
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--text);
+    word-wrap: break-word;
+    border: 2px solid var(--text);
+    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.35);
+}
+
+.chat-agent-a .chat-bubble {
+    background: linear-gradient(135deg, #1a3a68 0%, #0f2442 100%);
+    border-color: var(--agent-a);
+    border-top-left-radius: 2px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+.chat-agent-b .chat-bubble {
+    background: linear-gradient(135deg, #681a10 0%, #3a0e08 100%);
+    border-color: var(--agent-b);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+.chat-msg.chat-msg-active .chat-bubble {
+    box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.35),
+                0 0 0 2px var(--border-bright),
+                0 0 12px rgba(200, 135, 44, 0.35);
+}
+
+.chat-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    padding: 0 4px;
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.chat-agent-a .chat-meta { flex-direction: row; }
+.chat-agent-b .chat-meta { flex-direction: row-reverse; }
+
+.chat-sender {
+    font-family: var(--pokemon-font);
+    font-size: 7px;
+    letter-spacing: 1px;
+}
+
+.chat-agent-a .chat-sender { color: var(--agent-a); }
+.chat-agent-b .chat-sender { color: var(--agent-b); }
+
+.chat-turn {
+    color: var(--text-muted);
+}
+
+.chat-play,
+.chat-jump {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    font-family: monospace;
+    font-size: 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.chat-play:hover,
+.chat-jump:hover {
+    background: var(--border);
+    border-color: var(--border-bright);
+}
+
+.chat-play-loading { color: var(--warn); border-color: var(--warn); }
+
+.chat-play-active {
+    color: var(--border-bright);
+    border-color: var(--border-bright);
+    background: var(--surface2);
+    animation: chat-pulse 1.2s ease-in-out infinite;
+}
+
+.chat-play-error { color: var(--divergence); border-color: var(--divergence); }
+
+@keyframes chat-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(240, 184, 48, 0.5); }
+    50%      { box-shadow: 0 0 0 4px rgba(240, 184, 48, 0); }
+}
+
+.chat-frame-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-top: 2px solid var(--border-bright);
+    flex-shrink: 0;
+}
+
+.chat-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    letter-spacing: 0.5px;
+}
+
+.chat-toggle input[type="checkbox"] {
+    accent-color: var(--border-bright);
+    cursor: pointer;
+}
+
+.chat-toggle:hover { color: var(--text); }
+
+.chat-play-all,
+.chat-stop {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 10px;
+    font-family: var(--pokemon-font);
+    font-size: 7px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.chat-play-all { margin-left: auto; }
+
+.chat-play-all:hover,
+.chat-stop:hover {
+    background: var(--border);
+    border-color: var(--border-bright);
+}
+
+.chat-stop { padding: 6px 9px; }
+
+/* ============================================================
+   SECTION 2 — why-layout (diagnosis + causal side by side)
+   ============================================================ */
+
+.why-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 420px) 1fr;
+    gap: 18px;
+    align-items: start;
+}
+
+.why-layout .diagnosis-section,
+.why-layout .causal-section {
+    margin: 0;
+}
+
+/* Collapse to single column on narrow viewports */
+@media (max-width: 1100px) {
+    .replay-layout,
+    .why-layout {
+        grid-template-columns: 1fr;
+    }
+    .chat-frame {
+        height: 560px;
+    }
+}
